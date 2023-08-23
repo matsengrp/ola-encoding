@@ -56,12 +56,12 @@ def to_vector(tree):
             features=["parent_edge_label"], 
             format_root_node=True,
             format=9))
-    # add "grand-root" node so that every node in `tree_copy` has a parent
-    tree_copy2 = Tree()
-    tree_copy2.add_child(tree_copy)
-    # construct leaf dictionary for `tree_copy2`
+    # add "grandparent-root" node so that every node in `tree_copy` has a parent
+    tree_grandparent = Tree()
+    tree_grandparent.add_child(tree_copy)
+    # construct leaf dictionary for `tree_grandparent`
     leaf_dict = {}
-    for node in tree_copy2.traverse(strategy='postorder'):
+    for node in tree_grandparent.traverse(strategy='postorder'):
         if node.is_leaf():
             idx = leaf_to_idx[node.name]
             leaf_dict[idx] = node
@@ -129,7 +129,7 @@ def to_tree(vector, names=None):
         idx = vector[i - 1]
         # get node with label=idx, using stored dict
         subtree = label_to_node[idx]
-        # attach i-th leaf to parent-edge of `subtree` root node
+        # attach i-th leaf as sister of `subtree`, subdividing its parent-edge
         # to subdivide parent edge: add new node as sister of subtree-root
         new_node = subtree.add_sister(name="int-node-" + str(i))
         new_node.parent_edge_label = -i
@@ -320,6 +320,10 @@ Produce vectors or trees or vector-iterators or tree-iterators
 """
 
 def get_random_vector(n=30):
+    """
+    args:
+        n: number of leaves
+    """
     vec = [None for _ in range(n - 1)]
     for i in range(n - 1):
         vi = randrange(-i, i + 1)
@@ -327,6 +331,10 @@ def get_random_vector(n=30):
     return vec
 
 def get_random_tree(n=30):
+    """
+    args:
+        n: number of leaves
+    """
     vec = get_random_vector(n)
     return to_tree(vec)
 
