@@ -19,7 +19,8 @@ from vector_encoding import (
 
 def spr_neighbor(tree):
     """
-    return a tree which differs from the input tree by one SPR move
+    return a tree which differs from the input tree by one SPR (subtree-prune-regraft)
+    move
     """
     new_tree = tree.copy()
     node_list = list(new_tree.traverse())
@@ -38,9 +39,6 @@ def spr_neighbor(tree):
         mrca = new_tree.get_common_ancestor(prune_node, regraft_node)
         if mrca != prune_node:
             prune_node_found = True
-    # debugging
-    # print("to prune:", prune_node)
-    # print("to regraft:", regraft_node)
     # add new node on the regraft edge, above `regraft_node`
     if not regraft_node.is_leaf():
         regraft_children = [x for x in regraft_node.children] # copy de-referenced list
@@ -54,25 +52,14 @@ def spr_neighbor(tree):
         new_parent = regraft_node.up.add_child()
         regraft_node.detach()
         new_parent.add_child(regraft_node)
-    # new_parent.name = "r_new"
-    # debugging
-    # print("after step 1:", new_tree.get_ascii())
     prune_parent = prune_node.up
-    # prune_parent.name = "p_old"
     # prune subtree below `prune_node`
     prune_node.detach()
-    # print("after step 2:", new_tree.get_ascii())
-    # prune_parent.delete()
     if prune_parent.up is not None:
         prune_parent.delete()
-        # for node in prune_parent.children:
-        #     prune_parent.up.add_child(node)
-        # prune_parent.up.remove_child(prune_parent)
     else: # `prune_parent` is root node
         new_tree = prune_parent.children[0]
-    # print("after step 3:", new_tree.get_ascii())
-    # debugging: clear names
-    # new_parent.name = ""
+        new_tree.up = None
     new_parent.add_child(prune_node)
 
     return new_tree
