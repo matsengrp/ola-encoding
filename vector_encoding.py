@@ -5,6 +5,7 @@ The encoding works via applying a canonical edge labelling to the tree; the
 vector then records where leaves are added iteratively
 """
 
+import warnings
 from random import randrange
 from itertools import combinations_with_replacement
 from typing import (
@@ -114,6 +115,8 @@ def to_tree(vector, names=None):
         raise ValueError(
             "must provide at least n + 1 names, where n is the "
             "length of the encoding vector")
+    if len(set(names)) < len(names):
+        warnings.warn("leaf names provided are not distinct")
 
     # initialize label-to-node dictionary, to avoid cost of tree search
     label_to_node = {}
