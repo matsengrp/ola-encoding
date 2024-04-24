@@ -16,56 +16,18 @@ from vector_encoding import (
     gen_all_newicks,
     write_newicks_of_neighborhood
 )
-
-def spr_neighbor(tree):
-    """
-    return a tree which differs from the input tree by one SPR (subtree-prune-regraft)
-    move
-    """
-    new_tree = tree.copy()
-    node_list = list(new_tree.traverse())
-    # choose regraft location on edge above random node
-    regraft_node = random.choice(node_list)
-    # choose prune location on edge above random node
-    prune_node_found = False
-    while not prune_node_found:
-        prune_node = random.choice(node_list)
-        # check that `prune_node` is not adjacent to `regraft_node`
-        if prune_node.up == regraft_node.up:
-            continue
-        if prune_node.up == regraft_node:
-            continue
-        # check that `prune_node` is not an ancestor of `regraft_node`
-        mrca = new_tree.get_common_ancestor(prune_node, regraft_node)
-        if mrca != prune_node:
-            prune_node_found = True
-    # add new node on the regraft edge, above `regraft_node`
-    if not regraft_node.is_leaf():
-        regraft_children = [x for x in regraft_node.children] # copy de-referenced list
-        new_parent = Tree()
-        for node in regraft_children:
-            node.detach()
-            new_parent.add_child(node)
-        regraft_node.add_child(new_parent)
-        new_parent = regraft_node
-    else: # `regraft_node` is a leaf node
-        new_parent = regraft_node.up.add_child()
-        regraft_node.detach()
-        new_parent.add_child(regraft_node)
-    prune_parent = prune_node.up
-    # prune subtree below `prune_node`
-    prune_node.detach()
-    if prune_parent.up is not None:
-        prune_parent.delete()
-    else: # `prune_parent` is root node
-        new_tree = prune_parent.children[0]
-        new_tree.up = None
-    new_parent.add_child(prune_node)
-
-    return new_tree
+from tree_rearrangement import spr_neighbor
 
 def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, output="test.pdf"):
-
+    """
+    This function does the following:
+        1. Generate a random SPR-walk in the space of trees with the specified number of
+            leaves `nleaves`
+        2. Compute the OLA-distance from the i-th tree in the walk to the 0-th tree
+        3. Make a plot of the i-th walk index vs the OLA-distance
+        4. Repeat steps 1.-3. `nruns`-many times
+        5. Save the plot
+    """
     fig, ax = plt.subplots()
 
     for _ in range(nruns):
@@ -79,10 +41,10 @@ def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, output="test.pdf"):
         )
         remove_line_numbering(file="temp.log")
         read_trees_to_vector_distances(
-            file="temp.log",
+            in_file="temp.log",
             out_file="path_vec_dists.log"
         )
-        xs = range(nsteps)
+        # xs = range(nsteps)
         ys = np.genfromtxt("path_vec_dists.log", delimiter=',').flat
         ax.plot(
             # xs,
@@ -99,14 +61,18 @@ def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, output="test.pdf"):
     fig.savefig(output)
 
 def plot_random_spr_walk_vs_spr_distance(
-        nleaves=30, nsteps=10, nruns=2, output="test.pdf"
-    ):
+    nleaves=30, nsteps=10, nruns=2, output="test.pdf"
+):
 
     fig, ax = plt.subplots()
 
     for _ in range(nruns):
+        command = (
+            f"random_spr_walk/random_spr_walk -ntax {nleaves} -niterations {nsteps-1} "
+            "-sfreq 1 > temp.log"
+        )
         run(
-            f"random_spr_walk/random_spr_walk -ntax {nleaves} -niterations {nsteps-1} -sfreq 1 > temp.log", 
+            command, 
             shell=True
         )
         remove_line_numbering(file="temp.log")
@@ -132,6 +98,11 @@ def plot_random_spr_walk_vs_spr_distance(
 
 def make_scatterplot_from_lists(file1, file2, output="test.pdf"):
     """
+    Example usage:
+        make_scatterplot_from_lists(
+            "path_rspr_dists.log",
+            "path_vec_dists.log"
+        )
     Args:
         file1 and file2: csv files that are "list-shaped"
     """
@@ -226,6 +197,13 @@ def make_animation_from_matrices(
         file1, file2, title_names, texts,
         output="test.gif"):
     """
+    Example usage:
+        make_animation_from_matrices(
+            "all_rspr_distances_6.log",
+            "all_vec_distances_6.log",
+            list(make_all_vectors(6)),
+            [to_tree(x).get_ascii(show_internal=False) for x in make_all_vectors(6)]
+        )
     Args:
         title_names: a list of strings to use in title per frame
     """
@@ -316,6 +294,10 @@ def write_random_tree_pair(n=15, file="test.log"):
         print(tree2.write(format=9), file=fh)
 
 def write_random_tree_path(n_leaves=30, n_steps=10, file="test.log"):
+    """
+    Create random OLA-walk on space of trees with `n_leaves`-many leaves, with specified
+    number of steps, and save their newick strings to the specified file.
+    """
     next_tree = Tree()
     next_tree.populate(n_leaves)
     with open(file, 'w') as fh:
@@ -323,9 +305,14 @@ def write_random_tree_path(n_leaves=30, n_steps=10, file="test.log"):
             next_tree = random_tree_neighbor(next_tree)
             print(next_tree.write(format=9), file=fh)
 
-def read_trees_to_vector_distances(file="test.log", out_file=None):
+def read_trees_to_vector_distances(in_file="test.log", out_file=None):
+    """
+    Each line of `in_file` contains the newick string of a tree. This function computes
+    the OLA-distance of each tree to the first tree, and writes these distances to the
+    specified `out_file`.
+    """
     dists = []
-    with open(file, 'r') as fh:
+    with open(in_file, 'r') as fh:
         newicks = fh.read().splitlines()
     first_vec = to_vector(Tree(newicks[0]))
     for newick in newicks:
@@ -355,34 +342,4 @@ if __name__ == "__main__":
 
     plot_random_spr_walks(nleaves=1000, nsteps=15, nruns=10)
 
-    # make_scatterplot_from_lists(
-    #     "path_rspr_dists.log",
-    #     "path_vec_dists.log"
-    # )
 
-
-    # remove_line_numbering()
-    # read_trees_to_vector_distances(
-    #     file="test.log",
-    #     out_file="path_vec_dists.log"
-    # )
-
-    # n_leaves = 200
-    # n_steps = 1000
-    # file_name = f"random_treepath_{n_leaves}leaves_{n_steps}steps.txt"
-
-    # write_random_tree_path(
-    #     n_leaves=30,
-    #     n_steps=100
-    # )
-
-    # write_random_sample_newicks(30, 10)
-    # write_newicks_of_neighborhood(
-    #     [-i for i in range(29)], file="neighborhood_30.nw")
-
-    # make_animation_from_matrices(
-    #     "all_rspr_distances_6.log",
-    #     "all_vec_distances_6.log",
-    #     list(make_all_vectors(6)),
-    #     [to_tree(x).get_ascii(show_internal=False) for x in make_all_vectors(6)]
-    # )
