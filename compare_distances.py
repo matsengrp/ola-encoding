@@ -31,32 +31,30 @@ def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, output="test.pdf"):
     fig, ax = plt.subplots()
 
     for _ in range(nruns):
-        command = (
-            f"random_spr_walk/random_spr_walk -ntax {nleaves} -niterations {nsteps-1} "
-            "-sfreq 1 > temp.log"
-        )
-        run(
-            command, 
-            shell=True
-        )
-        remove_line_numbering(file="temp.log")
-        read_trees_to_vector_distances(
-            in_file="temp.log",
-            out_file="path_vec_dists.log"
-        )
-        # xs = range(nsteps)
-        ys = np.genfromtxt("path_vec_dists.log", delimiter=',').flat
+        # create starting tree
+        tree = get_random_tree(n_leaves=nleaves)
+        start_vector = to_vector(tree)
+
+        # initialize list of distances
+        ys = [0]
+        for _ in range(nsteps):
+            tree = spr_neighbor(tree)
+            vector = to_vector(tree)
+            dist = hamming_dist(start_vector, vector)
+            ys.append(dist)
+
         ax.plot(
-            # xs,
             ys,
-            alpha=0.8,
-            rasterized=True
+            alpha=0.5,
+            rasterized=True,
+            marker="o",
+            color="C0",
         )
     # ax.set_aspect("equal")
 
     fig.suptitle(f"random SPR walk on trees, with {nleaves} leaves and {nsteps} steps")
-    ax.set_xlabel('SPR steps')
-    ax.set_ylabel('vector-encoding distance')
+    ax.set_xlabel("SPR steps")
+    ax.set_ylabel("OLA distance")
 
     fig.savefig(output)
 
@@ -340,6 +338,6 @@ def remove_line_numbering(file="test.log"):
 
 if __name__ == "__main__":
 
-    plot_random_spr_walks(nleaves=1000, nsteps=15, nruns=10)
+    plot_random_spr_walks(nleaves=1000, nsteps=50, nruns=10)
 
 

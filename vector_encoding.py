@@ -333,12 +333,12 @@ def get_random_vector(n=30):
         vec[i] = vi
     return vec
 
-def get_random_tree(n=30):
+def get_random_tree(n_leaves=30):
     """
     args:
-        n: number of leaves
+        n_leaves: number of leaves
     """
-    vec = get_random_vector(n)
+    vec = get_random_vector(n_leaves)
     return to_tree(vec)
 
 def get_all_vectors(n=4):
