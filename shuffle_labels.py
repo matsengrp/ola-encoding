@@ -97,15 +97,6 @@ def plot_dist_vs_shuffle_on_spr_walk(
 
     fig.savefig(out_file)
 
-def plot_with_cmap(ax, xs, ys, **kwargs):
-    N = len(xs)
-    plt.rcParams["axes.prop_cycle"] = plt.cycler(
-        "color", 
-        plt.cm.viridis(np.linspace(0,1,N)),
-    )
-    ax.plot(xs, ys, **kwargs)
-    pass
-
 def main():
     pass
 
