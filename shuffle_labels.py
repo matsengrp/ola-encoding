@@ -18,22 +18,42 @@ def shuffle_labels(tree, permutation):
     returns a new tree whose labels are shuffled according to `permutation`
 
     Args:
-        permutation Dict[String -> String]: dictionary whose keys are strings 
-            corresponding to labels of the given tree, and values are these same strings
-            in shuffled order
+        permutation (list): list of integers from 0 to `n_leaves` - 1, in shuffled order
     """
     new_tree = tree.copy()
+    # create leaf shuffle dictionary from permutation
+    leaf_names = sorted(tree.get_leaf_names())
+    assert len(leaf_names) == len(permutation)
+    leaf_shuffle = {}
+    for i, name in enumerate(leaf_names):
+        leaf_shuffle[name] = leaf_names[permutation[i]]
     # iterate through leaves of `new_tree`
     for leaf in new_tree:
-        leaf.name = permutation[leaf.name]
+        leaf.name = leaf_shuffle[leaf.name]
     return new_tree
 
 def avg_ola_distance_shuffle(tree1, tree2, n_shuffles=10):
-    pass
+    names = tree1.get_leaf_names()
+    n_leaves = len(names)
 
-    return 0
+    dist = ola_distance(tree1, tree2)
+    distances = [dist]
+    for _ in range(n_shuffles - 1):
+        perm = list(range(n_leaves))
+        shuffle(perm)
+        shuf_tree1 = shuffle_labels(tree1, perm)
+        shuf_tree2 = shuffle_labels(tree2, perm)
+        dist = ola_distance(shuf_tree1, shuf_tree2)
+        distances.append(dist)
 
-def plot_dist_vs_shuffle_on_spr_walk(n_leaves, n_steps, n_walks=10, out_file="test.pdf"):
+    return np.array(distances).mean(), np.array(distances).std()
+
+def plot_dist_vs_shuffle_on_spr_walk(
+    n_leaves,
+    n_steps,
+    n_walks=10,
+    out_file="test.pdf",
+):
     fig, ax = plt.subplots()
     ax.set_xlabel("OLA distance")
     ax.set_ylabel("shuffled OLA distance")
@@ -45,16 +65,12 @@ def plot_dist_vs_shuffle_on_spr_walk(n_leaves, n_steps, n_walks=10, out_file="te
         # create random permutation for leaf labels
         perm = list(range(n_leaves))
         shuffle(perm)
-        names = get_names(n_leaves)
-        shuffle_dict = {}
-        for i, n in enumerate(names):
-            shuffle_dict[n] = names[perm[i]]
-        shuf_tree1 = shuffle_labels(tree1, shuffle_dict)
+        shuf_tree1 = shuffle_labels(tree1, perm)
 
         dist_pairs = []
         for _ in range(n_steps):
             tree2 = spr_neighbor(tree2)
-            shuf_tree2 = shuffle_labels(tree2, shuffle_dict)
+            shuf_tree2 = shuffle_labels(tree2, perm)
 
             dist = ola_distance(tree1, tree2)
             shuf_dist = ola_distance(shuf_tree1, shuf_tree2)
