@@ -14,7 +14,7 @@ from vector_encoding import (
     random_tree_neighbor,
     get_all_vectors, 
     gen_all_newicks,
-    write_newicks_of_neighborhood
+    write_newicks_of_neighborhood,
 )
 from tree_rearrangement import spr_neighbor
 
@@ -52,7 +52,7 @@ def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, output="test.pdf"):
         )
     # ax.set_aspect("equal")
 
-    fig.suptitle(f"random SPR walk on trees, with {nleaves} leaves and {nsteps} steps")
+    fig.suptitle(f"trees with {nleaves} leaves")
     ax.set_xlabel("SPR steps")
     ax.set_ylabel("OLA distance")
 
@@ -338,6 +338,6 @@ def remove_line_numbering(file="test.log"):
 
 if __name__ == "__main__":
 
-    plot_random_spr_walks(nleaves=1000, nsteps=50, nruns=10)
+    plot_random_spr_walks(nleaves=100, nsteps=50, nruns=10)
 
 

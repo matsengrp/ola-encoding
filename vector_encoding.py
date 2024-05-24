@@ -1,7 +1,7 @@
 """
 package to encode a phylogenetic tree on n leaves as an integer vector
 
-The encoding works via applying a canonical edge labelling to the tree; the
+The encoding works via applying a canonical internal-node labelling to the tree; the
 vector then records where leaves are added iteratively
 """
 
@@ -100,11 +100,7 @@ def to_tree(vector, names=None):
     n_leaves = len(vector) + 1
     if names is None:
         # generate default names ['aa', 'ab', 'ac', ...]
-        names = [chr(97 + i % 26) for i in range (n_leaves)]
-        period = 26
-        while period < n_leaves:
-            names = [names[i // period][-1] + names[i] for i in range(n_leaves)]
-            period = 26 * period
+        names = get_names(n_leaves)
     else:
         # ensure that `names` is a list of strings
         names = list(names) # names.copy()
@@ -259,7 +255,7 @@ def to_vector_multifurcating(tree, debugging=False):
 
 
 """
-Utils
+Utility functions
 """
 
 def test_vector_idempotent(n=30):
@@ -288,6 +284,9 @@ def hamming_dist_of_encodings(tree1, tree2):
     vec1 = to_vector(tree1)
     vec2 = to_vector(tree2)
     return hamming_dist(vec1, vec2)
+
+def ola_distance(tree1, tree2):
+    return hamming_dist_of_encodings(tree1, tree2)
 
 def combine_tree_vectors(left_vec, right_vec):
     n_left = len(left_vec) + 1
@@ -318,12 +317,25 @@ def get_root_label_from_vector(vec):
     t = to_tree(vec)
     return t.parent_edge_label
 
+def get_names(n):
+    """
+    generate default names ['aa', 'ab', 'ac', ...]
+    """
+    names = [chr(97 + i % 26) for i in range (n)]
+    period = 26
+    while period < n:
+        names = [names[i // period][-1] + names[i] for i in range(n)]
+        period = 26 * period
+    return names
+
 """
 Produce vectors or trees or vector-iterators or tree-iterators
 """
 
 def get_random_vector(n=30):
     """
+    Returns a uniformly random lenth-n integer vector with the restriction that
+    -i <= a_i <= i for all i.
     args:
         n: number of leaves
     """
