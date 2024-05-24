@@ -97,9 +97,71 @@ def plot_dist_vs_shuffle_on_spr_walk(
 
     fig.savefig(out_file)
 
+def plot_shuffled_dist_on_spr_walk(n_leaves, n_steps, out_file="test.pdf"):
+    """
+    Choose a random starting tree with `n_leaves` leaves, run an SPR walk for `n_steps`
+    steps, and plot the OLA distance from the starting tree using the original labeling,
+    as well as using a shuffled labeling
+    """
+    # create starting tree
+    tree_0 = get_random_tree(n_leaves)
+    # create random leaf label shuffle
+    perm = list(range(n_leaves))
+    shuffle(perm)
+    shuf_tree_0 = shuffle_labels(tree_0, perm)
+    # initialize distance lists
+    dists = [0]
+    shuf_dists = [0]
+    # create SPR walk
+    tree = tree_0
+    for _ in range(n_steps):
+        tree = spr_neighbor(tree)
+        dist = ola_distance(tree_0, tree)
+        dists.append(dist)
+
+        shuf_tree = shuffle_labels(tree, perm)
+        shuf_dist = ola_distance(shuf_tree_0, shuf_tree)
+        shuf_dists.append(shuf_dist)
+    # plot distances
+    fig, ax = plt.subplots()
+    ax.plot(dists, alpha=0.5, marker="o")
+    ax.plot(shuf_dists, alpha=0.5, marker="o")
+
+    fig.savefig(out_file)
+
+def plot_avg_ola_dist_on_spr_walk(n_leaves, n_steps, out_file="test.pdf"):
+    """
+    Choose a random starting tree with `n_leaves` leaves, run an SPR walk for `n_steps`
+    steps, and plot the average OLA distance from the starting tree, averaging over a
+    random choice of leaf label shuffles
+    """
+    # create starting tree
+    tree_0 = get_random_tree(n_leaves)
+    # initialize distance lists
+    dists = [0.]
+    std_devs = [0.]
+    # shuf_dists = [0]
+    # create SPR walk
+    tree = tree_0
+    for _ in range(n_steps):
+        tree = spr_neighbor(tree)
+        dist, std = avg_ola_distance_shuffle(tree_0, tree)
+        dists.append(dist)
+        std_devs.append(std)
+
+    # plot distances
+    fig, ax = plt.subplots()
+    ax.plot(dists, alpha=0.5, marker="o")
+    ax.plot(std_devs, alpha=0.5, marker="o")
+
+    fig.savefig(out_file)
+
+
 def main():
     pass
 
 if __name__ == "__main__":
-    plot_dist_vs_shuffle_on_spr_walk(n_leaves=500, n_steps=60)
+    # plot_dist_vs_shuffle_on_spr_walk(n_leaves=500, n_steps=60)
+    # plot_shuffled_dist_on_spr_walk(n_leaves=300, n_steps=30)
+    plot_avg_ola_dist_on_spr_walk(n_leaves=300, n_steps=30)
 
