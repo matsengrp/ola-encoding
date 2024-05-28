@@ -137,22 +137,39 @@ def plot_avg_ola_dist_on_spr_walk(n_leaves, n_steps, out_file="test.pdf"):
     """
     # create starting tree
     tree_0 = get_random_tree(n_leaves)
+    # create and store shuffles
+    perms = [list(range(n_leaves)) for _ in range(10)]
+    for perm in perms:
+        shuffle(perm)
     # initialize distance lists
-    dists = [0.]
+    dists = [[0] for _ in range(10)]
+    avg_dists = [0.]
     std_devs = [0.]
     # shuf_dists = [0]
     # create SPR walk
     tree = tree_0
     for _ in range(n_steps):
         tree = spr_neighbor(tree)
-        dist, std = avg_ola_distance_shuffle(tree_0, tree)
-        dists.append(dist)
-        std_devs.append(std)
+        # dist, std = avg_ola_distance_shuffle(tree_0, tree)
+        for i, perm in enumerate(perms):
+            shuf_tree_0 = shuffle_labels(tree_0, perm)
+            shuf_tree = shuffle_labels(tree, perm)
+            distance = ola_distance(shuf_tree_0, shuf_tree)
+            dists[i].append(distance)
+        shuf_dists = np.array([dist[-1] for dist in dists])
+        avg_dists.append(shuf_dists.mean())
+        std_devs.append(shuf_dists.std())
 
     # plot distances
     fig, ax = plt.subplots()
-    ax.plot(dists, alpha=0.5, marker="o")
-    ax.plot(std_devs, alpha=0.5, marker="o")
+    for i in range(10):
+        ax.plot(dists[i], alpha=0.5, color="C0")
+    ax.plot(avg_dists, alpha=0.9, marker="o", color="C0")
+    ax.plot(std_devs, alpha=0.5, marker="o", color="C1")
+    ax.fill_between(range(n_steps + 1), std_devs, alpha=0.5, color="C1")
+
+    ax.set_xlabel(f"SPR steps")
+    ax.set_ylabel(f"OLA distance")
 
     fig.savefig(out_file)
 
@@ -163,5 +180,5 @@ def main():
 if __name__ == "__main__":
     # plot_dist_vs_shuffle_on_spr_walk(n_leaves=500, n_steps=60)
     # plot_shuffled_dist_on_spr_walk(n_leaves=300, n_steps=30)
-    plot_avg_ola_dist_on_spr_walk(n_leaves=300, n_steps=30)
+    plot_avg_ola_dist_on_spr_walk(n_leaves=500, n_steps=100)
 
