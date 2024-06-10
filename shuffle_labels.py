@@ -6,10 +6,10 @@ from matplotlib import pyplot as plt
 from matplotlib import cm
 import numpy as np
 
-from vector_encoding import (
+from ola_encoding import (
     get_random_tree,
     ola_distance,
-    get_names,
+    default_names,
 )
 from tree_rearrangement import spr_neighbor
 

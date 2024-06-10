@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from subprocess import run
 from ete3 import Tree
-from vector_encoding import (
+from ola_encoding import (
     to_tree, 
     to_vector,
     hamming_dist,

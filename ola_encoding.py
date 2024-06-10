@@ -100,7 +100,7 @@ def to_tree(vector, names=None):
     n_leaves = len(vector) + 1
     if names is None:
         # generate default names ['aa', 'ab', 'ac', ...]
-        names = get_names(n_leaves)
+        names = default_names(n_leaves)
     else:
         # ensure that `names` is a list of strings
         names = list(names) # names.copy()
@@ -317,7 +317,7 @@ def get_root_label_from_vector(vec):
     t = to_tree(vec)
     return t.parent_edge_label
 
-def get_names(n):
+def default_names(n):
     """
     generate default names ['aa', 'ab', 'ac', ...]
     """
