@@ -9,16 +9,14 @@ from ola_encoding import (
     to_tree, 
     to_vector,
     hamming_dist,
-    hamming_dist_of_encodings,
+    ola_distance,
     get_random_tree,
     random_tree_neighbor,
     get_all_vectors, 
-    gen_all_newicks,
-    write_newicks_of_neighborhood,
 )
 from tree_rearrangement import spr_neighbor
 
-def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, output="test.pdf"):
+def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, seed=None, output="temp.pdf"):
     """
     This function does the following:
         1. Generate a random SPR-walk in the space of trees with the specified number of
@@ -28,19 +26,24 @@ def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, output="test.pdf"):
         4. Repeat steps 1.-3. `nruns`-many times
         5. Save the plot
     """
+    # set random seed
+    if seed is not None:
+        random.seed(seed)
+
     fig, ax = plt.subplots()
 
     for _ in range(nruns):
         # create starting tree
-        tree = get_random_tree(n_leaves=nleaves)
-        start_vector = to_vector(tree)
+        start_tree = get_random_tree(n_leaves=nleaves)
+        # start_vector = to_vector(start_tree)
+        tree = start_tree
 
         # initialize list of distances
         ys = [0]
         for _ in range(nsteps):
             tree = spr_neighbor(tree)
-            vector = to_vector(tree)
-            dist = hamming_dist(start_vector, vector)
+            # vector = to_vector(tree)
+            dist = ola_distance(start_tree, tree)
             ys.append(dist)
 
         ax.plot(
@@ -52,7 +55,7 @@ def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, output="test.pdf"):
         )
     # ax.set_aspect("equal")
 
-    fig.suptitle(f"trees with {nleaves} leaves")
+    # fig.suptitle(f"trees with {nleaves} leaves")
     ax.set_xlabel("SPR steps")
     ax.set_ylabel("OLA distance")
 
@@ -286,7 +289,7 @@ def write_random_tree_pair(n=15, file="test.log"):
     tree2 = Tree(); tree2.populate(n)
     print("first tree encoding:", to_vector(tree1))
     print("second tree encoding:", to_vector(tree2))
-    print(hamming_dist_of_encodings(tree1, tree2))
+    print(ola_distance(tree1, tree2))
     with open(file, 'w') as fh:
         print(tree1.write(format=9), file=fh)
         print(tree2.write(format=9), file=fh)
@@ -338,6 +341,20 @@ def remove_line_numbering(file="test.log"):
 
 if __name__ == "__main__":
 
-    plot_random_spr_walks(nleaves=100, nsteps=50, nruns=10)
-
+    # ola_distance_spr_walk_30_leaves.pdf
+    # plot_random_spr_walks(nleaves=30, nsteps=15, nruns=10, seed=168)
+    # ola_distance_spr_walk_100_leaves.pdf
+    # plot_random_spr_walks(nleaves=100, nsteps=50, nruns=10, seed=168)
+    # ola_distance_spr_walk_500_leaves.pdf
+    # plot_random_spr_walks(nleaves=500, nsteps=250, nruns=10, seed=168)
+    # ola_distance_spr_walk_500_leaves_short.pdf
+    # plot_random_spr_walks(nleaves=500, nsteps=50, nruns=10, seed=168)
+    # ola_distance_spr_walk_300_leaves.pdf
+    # plot_random_spr_walks(nleaves=300, nsteps=150, nruns=10, seed=168)
+    # ola_distance_spr_walk_300_leaves_short.pdf
+    # plot_random_spr_walks(nleaves=300, nsteps=50, nruns=10, seed=168)
+    # ola_distance_spr_walk_1000_leaves_short.pdf
+    # plot_random_spr_walks(nleaves=1000, nsteps=50, nruns=10, seed=168)
+    # ola_distance_spr_walk_3000_leaves_short.pdf
+    # plot_random_spr_walks(nleaves=3000, nsteps=50, nruns=10, seed=168)
 
