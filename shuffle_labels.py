@@ -129,11 +129,13 @@ def plot_shuffled_dist_on_spr_walk(n_leaves, n_steps, out_file="test.pdf"):
 
     fig.savefig(out_file)
 
-def plot_avg_ola_dist_on_spr_walk(n_leaves, n_steps, out_file="test.pdf"):
+def plot_avg_ola_dist_on_spr_walk(n_leaves, n_steps, out_file="temp.pdf"):
     """
-    Choose a random starting tree with `n_leaves` leaves, run an SPR walk for `n_steps`
-    steps, and plot the average OLA distance from the starting tree, averaging over a
-    random choice of leaf label shuffles
+    Function does the following:
+        1. Choose a random starting tree with `n_leaves` leaves, 
+        2. run an SPR walk for `n_steps` steps, and 
+        3. plot the average OLA distance from the starting tree, averaging over a random
+            choice of leaf label shuffles
     """
     # create starting tree
     tree_0 = get_random_tree(n_leaves)
@@ -165,6 +167,7 @@ def plot_avg_ola_dist_on_spr_walk(n_leaves, n_steps, out_file="test.pdf"):
     for i in range(10):
         ax.plot(dists[i], alpha=0.5, color="C0")
     ax.plot(avg_dists, alpha=0.9, marker="o", color="C0")
+    # plot standard deviations
     ax.plot(std_devs, alpha=0.5, marker="o", color="C1")
     ax.fill_between(range(n_steps + 1), std_devs, alpha=0.5, color="C1")
 
