@@ -278,15 +278,18 @@ def hamming_dist(vec1, vec2):
 
 def hamming_dist_of_encodings(tree1, tree2):
     """
-    Computes hamming distance between vector encodings of input trees.
-    Assumes that input trees have the same leaf set.
+    Alias for `ola_distance`
+    """
+    return ola_distance(tree1, tree2)
+
+def ola_distance(tree1, tree2):
+    """
+    Computes OLA distance between the input trees, which is the hamming distance between
+    OLA vector encodings. Assumes that input trees have the same leaf set.
     """
     vec1 = to_vector(tree1)
     vec2 = to_vector(tree2)
     return hamming_dist(vec1, vec2)
-
-def ola_distance(tree1, tree2):
-    return hamming_dist_of_encodings(tree1, tree2)
 
 def combine_tree_vectors(left_vec, right_vec):
     n_left = len(left_vec) + 1
@@ -334,7 +337,7 @@ Produce vectors or trees or vector-iterators or tree-iterators
 
 def get_random_vector(n=30):
     """
-    Returns a uniformly random lenth-n integer vector with the restriction that
+    Returns a uniformly random lenth-(n - 1) integer vector with the restriction that
     -i <= a_i <= i for all i.
     args:
         n: number of leaves
