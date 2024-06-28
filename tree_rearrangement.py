@@ -6,7 +6,12 @@ def spr_neighbor(tree):
     return a tree which differs from the input tree by one SPR (subtree-prune-regraft)
     move
     """
-    new_tree = tree.copy()
+    try:
+        new_tree = tree.copy()
+    except RecursionError:
+        # copy tree via Newick string
+        newick = tree.write(format=9)
+        new_tree = Tree(newick)
     node_list = list(new_tree.traverse())
 
     # choose regraft location on edge above random node
