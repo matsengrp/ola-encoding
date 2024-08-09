@@ -40,14 +40,14 @@ def to_vector(tree):
     for node in tree.traverse(strategy='postorder'):
         if node.is_leaf():
             idx = leaf_to_idx[node.name]
-            node.parent_edge_label = idx
+            node.label = idx
             node.clade_founder = idx
         else:
             # `clade_founder` = minimum label of descendant subclade 
             children_mins = [child.clade_founder for child in node.children]
             node.clade_founder = min(children_mins)
             node.clade_splitter = max(children_mins)
-            node.parent_edge_label = - node.clade_splitter
+            node.label = - node.clade_splitter
     
     # initialize encoding vector
     vector = []
@@ -55,7 +55,7 @@ def to_vector(tree):
     # copy tree
     tree_copy = Tree(
         tree.write(
-            features=["parent_edge_label"], 
+            features=["label"], 
             format_root_node=True,
             format=9))
     # add "grandparent-root" node so that every node in `tree_copy` has a parent
@@ -73,7 +73,7 @@ def to_vector(tree):
         leaf = leaf_dict[idx]
         sister = leaf.get_sisters()[0]
         # assign vector entry
-        vector.append(int(sister.parent_edge_label))
+        vector.append(int(sister.label))
         # delete node, and its parent, from tree_copy
         leaf.up.up.add_child(sister)
         leaf.up.detach()
@@ -121,7 +121,7 @@ def to_tree(vector, names=None):
     # initialize tree; note `tree` has an extra "grand-root" node
     tree = Tree()
     child_0 = tree.add_child(name=names[0])
-    child_0.parent_edge_label = 0
+    child_0.label = 0
     label_to_node[0] = child_0
 
     # build tree iteratively
@@ -132,14 +132,14 @@ def to_tree(vector, names=None):
         # attach i-th leaf as sister of `subtree`, subdividing its parent-edge
         # to subdivide parent edge: add new node as sister of subtree-root
         new_node = subtree.add_sister(name="int-node-" + str(i))
-        new_node.parent_edge_label = -i
+        new_node.label = -i
         label_to_node[-i] = new_node
         # to subdivide parent edge: then move current subtree to lie below new node
         subtree.detach()
         new_node.add_child(subtree)
         # add new leaf under new (internal-)node
         child = new_node.add_child(name=names[i])
-        child.parent_edge_label = i
+        child.label = i
         label_to_node[i] = child
 
     # return tree with "grand-root" removed
@@ -178,7 +178,7 @@ def to_vector_multifurcating(tree, debugging=False):
     for node in tree.traverse(strategy='postorder'):
         if node.is_leaf():
             idx = sorted_leaves.index(node.name)
-            node.parent_edge_label = [idx]
+            node.label = [idx]
             node.unmatched_labels = [idx]
         else:
             # edge label = union of umatched labels of children nodes, except
@@ -190,23 +190,23 @@ def to_vector_multifurcating(tree, debugging=False):
             min_label = min(children_labels)
             node.unmatched_labels = [min_label]
             children_labels.remove(min_label)
-            node.parent_edge_label = sorted(children_labels)
+            node.label = sorted(children_labels)
             if debugging: print(
                     "at node above", node.get_leaf_names(),
-                    "assigning edge label:", node.parent_edge_label)
+                    "assigning edge label:", node.label)
     
     # initialize encoding vector
     vector = [None] * (n_leaves - 1)
     for node in tree.traverse(strategy='preorder'):
         if node.is_leaf():
             continue
-        for i in node.parent_edge_label:
+        for i in node.label:
             ## debugging
             if debugging: print("determining vector entry at pos.", i)
             if i == 0:
                 continue
-            if i > min(node.parent_edge_label):
-                vector[i - 1] = - min(node.parent_edge_label) - 0.5
+            if i > min(node.label):
+                vector[i - 1] = - min(node.label) - 0.5
                 continue
             # determine i-th entry of encoding vector, which is the 
             # first-encountered edge label below edge (-i) which has 
@@ -223,7 +223,7 @@ def to_vector_multifurcating(tree, debugging=False):
                 )
                 for child in children:
                     if child.is_leaf():
-                        label = child.parent_edge_label[0]
+                        label = child.label[0]
                         # check label-found condition
                         if label < i:
                             vector[i - 1] = label
@@ -235,7 +235,7 @@ def to_vector_multifurcating(tree, debugging=False):
                                     vector[i - 1], "at pos.", i)
                             break
                     # if `child` is not a leaf node
-                    for label in child.parent_edge_label:
+                    for label in child.label:
                         # check label-found condition
                         if abs(label) < i:
                             vector[i - 1] = - label
@@ -319,7 +319,7 @@ def split_tree_children_vectors(vec: List[int]):
 
 def get_root_label_from_vector(vec):
     t = to_tree(vec)
-    return t.parent_edge_label
+    return t.label
 
 def default_names(n):
     """
@@ -535,12 +535,12 @@ if __name__ == "__main__":
     # tree1 = Tree("((0,2),(3,(4,(5,1))));")
     # tree2 = Tree("((0,2),(((3,4),5),1));")
     # print(to_vector(test_tree))
-    # print(test_tree.get_ascii(attributes=['parent_edge_label', 'name']))
+    # print(test_tree.get_ascii(attributes=['label', 'name']))
 
     # vector = get_random_vector(7)
     # print("random vector: \n", vector)
     # print(
     #     "tree form:\n", 
-    #     to_tree(vector).get_ascii(attributes=['parent_edge_label', 'name']))
+    #     to_tree(vector).get_ascii(attributes=['label', 'name']))
 
     
