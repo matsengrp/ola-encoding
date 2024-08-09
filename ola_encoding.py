@@ -41,12 +41,13 @@ def to_vector(tree):
         if node.is_leaf():
             idx = leaf_to_idx[node.name]
             node.parent_edge_label = idx
-            node.min_label_below = idx
+            node.clade_founder = idx
         else:
-            # `min_label_below` = minimum label of descendant subclade 
-            children_mins = [child.min_label_below for child in node.children]
-            node.min_label_below = min(children_mins)
-            node.parent_edge_label = - max(children_mins)
+            # `clade_founder` = minimum label of descendant subclade 
+            children_mins = [child.clade_founder for child in node.children]
+            node.clade_founder = min(children_mins)
+            node.clade_splitter = max(children_mins)
+            node.parent_edge_label = - node.clade_splitter
     
     # initialize encoding vector
     vector = []
