@@ -1,5 +1,6 @@
 import random
-from ola.ola_encoding import to_vector, to_tree, get_random_vector
+from ola.ola_encoding import to_vector, to_tree
+from ola.utils import get_random_vector
 
 def test_inverse():
     for _ in range(100):
