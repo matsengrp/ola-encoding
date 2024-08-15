@@ -7,10 +7,6 @@ vector then records where leaves are added iteratively
 
 import warnings
 from random import randrange
-from itertools import combinations_with_replacement
-from typing import (
-    List
-)
 from ete3 import Tree
 
 def to_vector(tree):
@@ -23,7 +19,8 @@ def to_vector(tree):
         raise ValueError("input tree should be rooted")
 
     n_leaves = len(tree.get_leaf_names())
-    assert n_leaves >= 1
+    if n_leaves < 1:
+        raise ValueError("input tree should have at least 1 leaf")
     # handle small cases, < 2 leaves
     if n_leaves == 1:
         return []
@@ -31,13 +28,24 @@ def to_vector(tree):
         return [0]
     
     # tree has 3 or more leaves
-    sorted_leaves = sorted(tree.get_leaf_names())
+    # copy tree
+    tree_copy = Tree(
+        tree.write(
+            features=["label"], 
+            format_root_node=True,
+            format=9))
+    sorted_leaf_names = sorted(tree_copy.get_leaf_names())
     leaf_to_idx = {}
-    for (idx, name) in enumerate(sorted_leaves):
+    for (idx, name) in enumerate(sorted_leaf_names):
         leaf_to_idx[name] = idx
+    # construct leaf dictionary for `tree_copy`
+    leaf_dict = {}
+    for leaf in tree_copy:  # iterates through leaves tree_grandparent.traverse(strategy='postorder'):
+        idx = leaf_to_idx[leaf.name]
+        leaf_dict[idx] = leaf
     
     # perform internal node labelling
-    for node in tree.traverse(strategy='postorder'):
+    for node in tree_copy.traverse(strategy='postorder'):
         if node.is_leaf():
             idx = leaf_to_idx[node.name]
             node.label = idx
@@ -49,24 +57,12 @@ def to_vector(tree):
             node.clade_splitter = max(children_mins)
             node.label = - node.clade_splitter
     
-    # initialize encoding vector
-    vector = []
-    # fill in vector via tree deconstruction, removing one leaf at a time
-    # copy tree
-    tree_copy = Tree(
-        tree.write(
-            features=["label"], 
-            format_root_node=True,
-            format=9))
     # add "grandparent-root" node so that every node in `tree_copy` has a parent
     tree_grandparent = Tree()
     tree_grandparent.add_child(tree_copy)
-    # construct leaf dictionary for `tree_grandparent`
-    leaf_dict = {}
-    for node in tree_grandparent.traverse(strategy='postorder'):
-        if node.is_leaf():
-            idx = leaf_to_idx[node.name]
-            leaf_dict[idx] = node
+    # initialize encoding vector
+    vector = []
+    # fill in vector via tree deconstruction, removing one leaf at a time
     for i in range(n_leaves - 1):
         idx = n_leaves - 1 - i
         # find sister node of leaf idx
@@ -78,6 +74,7 @@ def to_vector(tree):
         leaf.up.up.add_child(sister)
         leaf.up.detach()
     vector.reverse()
+    print(f"running ola encoding with {n_leaves} leaves")
     return vector
 
 def to_tree(vector, names=None):
@@ -147,6 +144,18 @@ def to_tree(vector, names=None):
     # `.up = None` needed so that result is considered rooted
     final_tree.up = None
     return final_tree
+
+def default_names(n):
+    """
+    generate default names ['aa', 'ab', 'ac', ...]
+    """
+    names = [chr(97 + i % 26) for i in range (n)]
+    period = 26
+    while period < n:
+        names = [names[i // period][-1] + names[i] for i in range(n)]
+        period = 26 * period
+    return names
+
 
 """
 Multifurcating versions
@@ -254,22 +263,9 @@ def to_vector_multifurcating(tree, debugging=False):
 
     return vector
 
-
 """
-Utility functions
+OLA distance
 """
-
-def test_vector_idempotent(n=30):
-    vec = get_random_vector(n)
-    assert vec == to_vector(to_tree(vec))
-    print("Passed test with vector = ", vec)
-
-def test_ete_vector_idempotent(n=30):
-    t = Tree()
-    t.populate(n)
-    vec = to_vector(t)
-    assert vec == to_vector(to_tree(vec))
-    print("Passed test with tree = ", t.write(format=9), t)
 
 def hamming_dist(vec1, vec2):
     """
@@ -291,126 +287,6 @@ def ola_distance(tree1, tree2):
     vec1 = to_vector(tree1)
     vec2 = to_vector(tree2)
     return hamming_dist(vec1, vec2)
-
-def combine_tree_vectors(left_vec, right_vec):
-    n_left = len(left_vec) + 1
-    n_right = len(right_vec) + 1
-    combined_names = [
-        chr(97 + i // 26) + chr(97 + i % 26) for i in range(n_left + n_right)]
-    left_tree = to_tree(
-        left_vec,
-        names=combined_names[:n_left])
-    right_tree = to_tree(
-        right_vec, 
-        names=combined_names[n_left:])
-    t = Tree()
-    t.add_child(left_tree)
-    t.add_child(right_tree)
-    return to_vector(t)
-
-def split_tree_children_vectors(vec: List[int]):
-    t = to_tree(vec)
-    left_child = t.children[0]
-    right_child = t.children[1]
-    # `.up = None` needed so that result is considered rooted
-    left_child.up = None
-    right_child.up = None
-    return (to_vector(left_child), to_vector(right_child))
-
-def get_root_label_from_vector(vec):
-    t = to_tree(vec)
-    return t.label
-
-def default_names(n):
-    """
-    generate default names ['aa', 'ab', 'ac', ...]
-    """
-    names = [chr(97 + i % 26) for i in range (n)]
-    period = 26
-    while period < n:
-        names = [names[i // period][-1] + names[i] for i in range(n)]
-        period = 26 * period
-    return names
-
-"""
-Produce vectors or trees or vector-iterators or tree-iterators
-"""
-
-def get_random_vector(n=30):
-    """
-    Returns a uniformly random lenth-(n - 1) integer vector with the restriction that
-    -i <= a_i <= i for all i.
-    args:
-        n: number of leaves
-    """
-    vec = [None for _ in range(n - 1)]
-    for i in range(n - 1):
-        vi = randrange(-i, i + 1)
-        vec[i] = vi
-    return vec
-
-def get_random_tree(n_leaves=30):
-    """
-    args:
-        n_leaves: number of leaves
-    """
-    vec = get_random_vector(n_leaves)
-    return to_tree(vec)
-
-def get_all_vectors(n=4):
-    """
-    Returns an iterator which yields all integer vectors of length n - 1,
-    which satisfy the constraint that the i-th entry is in the range [-i, i]
-    """
-    vec = [-i for i in range(n - 1)]
-    max_reached = False
-    while not max_reached:
-        yield vec.copy()
-
-        # increment vector
-        vec[-1] += 1
-        # carry terms
-        for i in range(n-2, 0, -1):
-            if vec[i] > i:
-                # carry term
-                vec[i] = -i
-                vec[i - 1] += 1
-        # check if max reached
-        if vec[0] > 0:
-            max_reached = True
-
-def get_all_treeshape_vectors(n=4):
-    """
-    Returns an iterator which yields vector encodings of tree on n leaves,
-    representing all possible tree shapes
-    """
-    if n == 0:
-        return iter(())
-    elif n == 1:
-        yield []
-    elif n == 2:
-        yield [0]
-    else:
-        # n >= 3
-        for k in range(1, (n+1) // 2):
-            for leftvec in get_all_treeshape_vectors(k):
-                for rightvec in get_all_treeshape_vectors(n - k):
-                    yield combine_tree_vectors(leftvec, rightvec)
-        if n % 2 == 0:
-            # n is even
-            k = n // 2
-            for (leftvec, rightvec) in combinations_with_replacement(
-                get_all_treeshape_vectors(k), 2
-            ):
-                yield combine_tree_vectors(leftvec, rightvec)
-
-def get_all_treeshapes(n=4):
-    """
-    Returns an iterator which yields trees on n leaves, representing all 
-    possible tree shapes
-    """
-    for vec in get_all_treeshape_vectors(n):
-        yield to_tree(vec)
 
 def get_vector_neighborhood(start_vec):
     """
@@ -497,35 +373,6 @@ def lazy_random_tree_neighbor(start_tree):
     new_vec = lazy_random_vector_neighbor(start_vec)
     return to_tree(new_vec)
     
-def write_newicks_of_neighborhood(start_vec, file="test.log"):
-    nbhd_vecs = get_vector_neighborhood(start_vec)
-    with open(file, 'w') as fh:
-        for vec in nbhd_vecs:
-            tree = to_tree(vec)
-            newick = tree.write(format=9)
-            print(newick, file=fh)
-
-def write_all_newicks(n=4, file="test.log"):
-    """
-    Writes all trees on n leaves in newick format, to output file
-    """
-    all_vecs = get_all_vectors(n)
-    with open(file, 'w') as fh:
-        for vec in all_vecs:
-            tree = to_tree(vec)
-            newick = tree.write(format=9)
-            print(newick, file=fh)
-
-def gen_all_newicks(n=4):
-    """
-    Returns an iterator which yields newick strings
-    """
-    all_vecs = get_all_vectors(n)
-    for vec in all_vecs:
-        tree = to_tree(vec)
-        newick = tree.write(format=9)
-        yield newick
-
 
 
 if __name__ == "__main__":
