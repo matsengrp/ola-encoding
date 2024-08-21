@@ -28,7 +28,7 @@ def to_vector(tree):
         return [0]
     
     # tree has 3 or more leaves
-    # copy tree
+    # make copy of input tree
     tree_copy = Tree(
         tree.write(
             features=["label"], 
@@ -40,7 +40,7 @@ def to_vector(tree):
         leaf_to_idx[name] = idx
     # construct leaf dictionary for `tree_copy`
     leaf_dict = {}
-    for leaf in tree_copy:  # iterates through leaves tree_grandparent.traverse(strategy='postorder'):
+    for leaf in tree_copy:  # iterates through leaves
         idx = leaf_to_idx[leaf.name]
         leaf_dict[idx] = leaf
     
@@ -68,7 +68,7 @@ def to_vector(tree):
         # find sister node of leaf idx
         leaf = leaf_dict[idx]
         sister = leaf.get_sisters()[0]
-        # assign vector entry
+        # assign vector entry (to be reversed later)
         vector.append(int(sister.label))
         # delete node, and its parent, from tree_copy
         leaf.up.up.add_child(sister)
@@ -88,13 +88,15 @@ def to_tree(vector, names=None):
     """
     # check input vector is "proper"
     for i, vi in enumerate(vector):
-        assert isinstance(vi, int), (
-            f"input vector should should have int entries; given input={vector}"
-        )
-        assert abs(vi) <= i, (
-            f"vector entry vector[{i}] should be between -{i} and {i} "
-            f"(inclusive), given input has vector[{i}]={vi}"
-        )
+        if not isinstance(vi, int):
+            raise ValueError(
+                f"input vector should should have int entries; given input={vector}"
+            )
+        if abs(vi) > i:
+            raise ValueError(
+                f"input vector entry vector[{i}] should be between -{i} and {i} "
+                f"(inclusive), but given input has vector[{i}]={vi}"
+            )
     n_leaves = len(vector) + 1
     if names is None:
         # generate default names ['aa', 'ab', 'ac', ...]
@@ -173,17 +175,19 @@ def to_vector_multifurcating(tree, debugging=False):
         raise ValueError("input tree should be rooted")
 
     n_leaves = len(tree.get_leaf_names())
+    if n_leaves < 1:
+        raise ValueError("input tree should have at least 1 leaf")
     # handle small cases, < 2 leaves
-    if n_leaves == 0:
+    if n_leaves == 1:
         return []
-    elif n_leaves == 1:
+    elif n_leaves == 2:
         return [0]
     
-    # if tree has 2 or more leaves
+    # if tree has 3 or more leaves
     sorted_leaves = sorted(tree.get_leaf_names())
     if debugging: print("sorted_leaves:", sorted_leaves)
     
-    # perform (parent-)edge labelling
+    # perform internal node labelling
     for node in tree.traverse(strategy='postorder'):
         if node.is_leaf():
             idx = sorted_leaves.index(node.name)
