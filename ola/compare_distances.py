@@ -21,14 +21,14 @@ from tree_rearrangement import (
     spr_neighbor,
 )
 
-def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, seed=None, output="temp.pdf"):
+def plot_random_spr_walks(n_leaves=30, n_steps=10, n_runs=2, seed=None, output="temp.pdf"):
     """
     This function does the following:
         1. Generate a random SPR-walk in the space of trees with the specified number of
-            leaves `nleaves`
+            leaves `n_leaves`
         2. Compute the OLA-distance from the i-th tree in the walk to the 0-th tree
         3. Make a plot of the i-th walk index vs the OLA-distance
-        4. Repeat steps 1.-3. `nruns`-many times
+        4. Repeat steps 1.-3. `n_runs`-many times
         5. Save the plot
     """
     # set random seed
@@ -37,18 +37,8 @@ def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, seed=None, output="tem
 
     fig, ax = plt.subplots()
 
-    for _ in range(nruns):
-        # create starting tree
-        start_tree = get_random_tree(n_leaves=nleaves)
-        # start_vector = to_vector(start_tree)
-        tree = start_tree
-
-        # initialize list of distances
-        ys = [0]
-        for _ in range(nsteps):
-            tree = spr_neighbor(tree)
-            dist = ola_distance(start_tree, tree)
-            ys.append(dist)
+    for _ in range(n_runs):
+        ys = ola_dists_random_spr_walk(n_leaves, n_steps)
 
         ax.plot(
             ys,
@@ -59,7 +49,7 @@ def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, seed=None, output="tem
         )
     # ax.set_aspect("equal")
 
-    # fig.suptitle(f"trees with {nleaves} leaves")
+    # fig.suptitle(f"trees with {n_leaves} leaves")
     ax.set_xlabel("SPR steps")
     ax.set_ylabel("OLA distance")
 
@@ -82,7 +72,7 @@ def plot_random_nni_walks(n_leaves=30, n_steps=10, n_runs=2, seed=None, output="
     fig, ax = plt.subplots()
 
     for _ in range(n_runs):
-        ys = ola_dists_random_nni_walk(n_leaves=n_leaves, n_steps=n_steps)
+        ys = ola_dists_random_nni_walk(n_leaves, n_steps)
 
         ax.plot(
             ys,
@@ -100,6 +90,13 @@ def plot_random_nni_walks(n_leaves=30, n_steps=10, n_runs=2, seed=None, output="
     fig.savefig(output)
 
 def ola_dists_random_nni_walk(n_leaves=30, n_steps=10):
+    """
+    This function does the following:
+        1. Generate a random NNI-walk in the space of trees with the specified number of
+            leaves `n_leaves`
+        2. Compute the OLA-distance from the i-th tree in the walk to the 0-th tree
+        3. Returns the list of distances
+    """
     # create starting tree
     start_tree = get_random_tree(n_leaves=n_leaves)
     tree = start_tree
@@ -108,6 +105,26 @@ def ola_dists_random_nni_walk(n_leaves=30, n_steps=10):
     dists = [0]
     for _ in range(n_steps):
         tree = nni_neighbor(tree)
+        dist = ola_distance(start_tree, tree)
+        dists.append(dist)
+    return dists
+
+def ola_dists_random_spr_walk(n_leaves=30, n_steps=10):
+    """
+    This function does the following:
+        1. Generate a random SPR-walk in the space of trees with the specified number of
+            leaves `n_leaves`
+        2. Compute the OLA-distance from the i-th tree in the walk to the 0-th tree
+        3. Returns the list of distances
+    """
+    # create starting tree
+    start_tree = get_random_tree(n_leaves=n_leaves)
+    tree = start_tree
+
+    # initialize list of distances
+    dists = [0]
+    for _ in range(n_steps):
+        tree = spr_neighbor(tree)
         dist = ola_distance(start_tree, tree)
         dists.append(dist)
     return dists
