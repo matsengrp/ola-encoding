@@ -62,5 +62,50 @@ def nni_neighbor(tree):
     """
     return a tree which differs from the input tree by one NNI (nearest-neighbor-
     interchange) move
+
+    i.e. the tree
+            /-A
+       /(*)|
+    --|     \-B
+      |
+       \-C
+    gets changed to either 
+            /-C
+       /(*)|
+    --|     \-B
+      |
+       \-A
+    or
+            /-A
+       /(*)|
+    --|     \-C
+      |
+       \-B
     """
-    pass
+    try:
+        new_tree = tree.copy()
+    except RecursionError:
+        # copy tree via Newick string
+        newick = tree.write(format=9)
+        new_tree = Tree(newick)
+    node_list = list(new_tree.traverse())
+
+    # choose an internal node
+    int_node_found = False
+    while not int_node_found:
+        int_node = random.choice(node_list)
+        if not int_node.is_leaf() and not int_node.is_root():
+            int_node_found = True
+    # choose child of internal node at random (1 of 2 choices)
+    child_i = random.choice([0, 1])
+    child_node = int_node.children[child_i]
+
+    # switch chosen child with chosen node's sister
+    sister = int_node.get_sisters()[0]
+    int_node.up.remove_child(sister)
+    int_node.remove_child(child_node)
+
+    int_node.up.add_child(child_node)
+    int_node.add_child(sister)
+
+    return new_tree

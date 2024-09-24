@@ -74,7 +74,7 @@ def to_vector(tree):
         leaf.up.up.add_child(sister)
         leaf.up.detach()
     vector.reverse()
-    print(f"running ola encoding with {n_leaves} leaves")
+    # print(f"running ola encoding with {n_leaves} leaves")
     return vector
 
 def to_tree(vector, names=None):
