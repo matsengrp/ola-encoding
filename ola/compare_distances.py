@@ -10,11 +10,16 @@ from ola_encoding import (
     to_vector,
     hamming_dist,
     ola_distance,
-    get_random_tree,
     random_tree_neighbor,
+)
+from utils import (
+    get_random_tree,
     get_all_vectors, 
 )
-from tree_rearrangement import spr_neighbor
+from tree_rearrangement import (
+    nni_neighbor,
+    spr_neighbor,
+)
 
 def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, seed=None, output="temp.pdf"):
     """
@@ -42,7 +47,6 @@ def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, seed=None, output="tem
         ys = [0]
         for _ in range(nsteps):
             tree = spr_neighbor(tree)
-            # vector = to_vector(tree)
             dist = ola_distance(start_tree, tree)
             ys.append(dist)
 
@@ -60,6 +64,53 @@ def plot_random_spr_walks(nleaves=30, nsteps=10, nruns=2, seed=None, output="tem
     ax.set_ylabel("OLA distance")
 
     fig.savefig(output)
+
+def plot_random_nni_walks(n_leaves=30, n_steps=10, n_runs=2, seed=None, output="temp.pdf"):
+    """
+    This function does the following:
+        1. Generate a random NNI-walk in the space of trees with the specified number of
+            leaves `n_leaves`
+        2. Compute the OLA-distance from the i-th tree in the walk to the 0-th tree
+        3. Make a plot of the i-th walk index vs the OLA-distance
+        4. Repeat steps 1.-3. `n_runs`-many times
+        5. Save the plot
+    """
+    # set random seed
+    if seed is not None:
+        random.seed(seed)
+
+    fig, ax = plt.subplots()
+
+    for _ in range(n_runs):
+        ys = ola_dists_random_nni_walk(n_leaves=n_leaves, n_steps=n_steps)
+
+        ax.plot(
+            ys,
+            alpha=0.5,
+            rasterized=True,
+            marker="o",
+            color="C0",
+        )
+    # ax.set_aspect("equal")
+
+    # fig.suptitle(f"trees with {n_leaves} leaves")
+    ax.set_xlabel("NNI steps")
+    ax.set_ylabel("OLA distance")
+
+    fig.savefig(output)
+
+def ola_dists_random_nni_walk(n_leaves=30, n_steps=10):
+    # create starting tree
+    start_tree = get_random_tree(n_leaves=n_leaves)
+    tree = start_tree
+
+    # initialize list of distances
+    dists = [0]
+    for _ in range(n_steps):
+        tree = nni_neighbor(tree)
+        dist = ola_distance(start_tree, tree)
+        dists.append(dist)
+    return dists
 
 def plot_random_spr_walk_vs_spr_distance(
     nleaves=30, nsteps=10, nruns=2, output="test.pdf"
@@ -341,6 +392,7 @@ def remove_line_numbering(file="test.log"):
 
 if __name__ == "__main__":
 
+    plot_random_nni_walks(n_leaves=100, n_steps=50, n_runs=10)
     # ola_distance_spr_walk_30_leaves.pdf
     # plot_random_spr_walks(nleaves=30, nsteps=15, nruns=10, seed=168)
     # ola_distance_spr_walk_100_leaves.pdf
