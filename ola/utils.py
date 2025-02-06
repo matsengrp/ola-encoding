@@ -81,6 +81,19 @@ def get_random_tree(n_leaves=30):
     vec = get_random_vector(n_leaves)
     return to_tree(vec)
 
+def get_random_yule_tree(n_leaves=30):
+    """
+    A Yule tree is a tree constructed by adding a new leaf as the sister to a previous 
+    leaf. In terms of the OLA encoding, this means the OLA entires are nonnegative
+    args:
+        n_leaves: number of leaves
+    """
+    vec = [None for _ in range(n_leaves - 1)]
+    for i in range(n_leaves - 1):
+        vi = randrange(0, i + 1)
+        vec[i] = vi
+    return to_tree(vec)
+
 def get_all_vectors(n=4):
     """
     Returns an iterator which yields all integer vectors of length n - 1,
