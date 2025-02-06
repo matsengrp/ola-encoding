@@ -85,7 +85,7 @@ def nni_neighbor(tree):
     try:
         new_tree = tree.copy()
     except RecursionError:
-        # copy tree via Newick string
+        # if tree is too large, copy tree via Newick string
         newick = tree.write(format=9)
         new_tree = Tree(newick)
     node_list = list(new_tree.traverse())
@@ -109,3 +109,15 @@ def nni_neighbor(tree):
     int_node.add_child(sister)
 
     return new_tree
+
+def all_spr_neighbors(tree):
+    """
+    returns an iterator of all SPR neighbors of the input tree
+    """
+    pass
+    
+def all_nni_neighbors(tree):
+    """
+    returns an iterator of all NNI neighbors of the input tree
+    """
+    pass

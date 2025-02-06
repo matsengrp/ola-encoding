@@ -11,9 +11,11 @@ from ete3 import Tree
 
 def to_vector(tree):
     """
-    args:
+    Args:
         tree: ete3.Tree object. tree is assumed to be rooted 
             and bifurcating, and have distinct leaf names.
+    Returns:
+        a list of integers
     """
     if not tree.is_root():
         raise ValueError("input tree should be rooted")
@@ -149,7 +151,7 @@ def to_tree(vector, names=None):
 
 def default_names(n):
     """
-    generate default names ['aa', 'ab', 'ac', ...]
+    generate default names ['aa', 'ab', 'ac', ...] used in `to_tree` function
     """
     names = [chr(97 + i % 26) for i in range (n)]
     period = 26
@@ -274,6 +276,8 @@ OLA distance
 def hamming_dist(vec1, vec2):
     """
     Computes hamming distance between input vectors
+    Args:
+        two lists, assumed to have the same length
     """
     return sum(a != b for (a, b) in zip(vec1, vec2))
 
