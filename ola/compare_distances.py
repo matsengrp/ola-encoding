@@ -14,12 +14,89 @@ from ola_encoding import (
 )
 from utils import (
     get_random_tree,
+    get_random_yule_tree,
     get_all_vectors, 
 )
 from tree_rearrangement import (
     nni_neighbor,
     spr_neighbor,
 )
+
+def plot_avg_spr_distance_vs_tree_size(
+    distribution="uniform",
+    seed=None,
+    output="temp.pdf"
+):
+    """
+    create a plot of expected distance from a fixed tree to a random SPR-neighbor tree,
+    using randomly seleted SPR neighbors
+    args:
+        distrubtion: "uniform" or "yule"
+    """
+    # set random seed
+    if seed is not None:
+        random.seed(seed)
+
+    fig, ax = plt.subplots()
+
+    xs = []
+    ys = []
+    for n in [10, 20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900]:
+        for _ in range(10):
+            if distribution == "uniform":
+                tree = get_random_tree(n_leaves=n)
+            elif distribution == "yule":
+                tree = get_random_yule_tree(n_leaves=n)
+            else:
+                raise ValueError
+            dists = []
+            n_nbhrs = max(10, n // 10)
+            for _ in range(n_nbhrs):
+                tree_n = spr_neighbor(tree)
+                dists.append(ola_distance(tree, tree_n))
+            xs.append(n)
+            ys.append(np.average(dists))
+    
+    ax.scatter(xs, ys, alpha=0.6)
+
+    ax.set_xlabel("Number of leaves")
+    ax.set_ylabel("OLA distance")
+    
+    fig.savefig(output)
+
+def plot_avg_nni_distance_vs_tree_size(
+    seed=None,
+    output="temp.pdf"
+):
+    """
+    create a plot of expected distance from a fixed tree to a random NNI-neighbor tree,
+    using randomly seleted NNI neighbors
+    """
+    # set random seed
+    if seed is not None:
+        random.seed(seed)
+
+    fig, ax = plt.subplots()
+
+    xs = []
+    ys = []
+    for n in [10, 20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900]:
+        for _ in range(10):
+            tree = get_random_tree(n_leaves=n)
+            dists = []
+            n_nbhrs = max(10, n // 10)
+            for _ in range(n_nbhrs):
+                tree_n = nni_neighbor(tree)
+                dists.append(ola_distance(tree, tree_n))
+            xs.append(n)
+            ys.append(np.average(dists))
+    
+    ax.scatter(xs, ys, alpha=0.6)
+
+    ax.set_xlabel("Number of leaves")
+    ax.set_ylabel("OLA distance")
+    
+    fig.savefig(output)
 
 def plot_random_spr_walks(n_leaves=30, n_steps=10, n_runs=2, seed=None, output="temp.pdf"):
     """
@@ -426,4 +503,6 @@ if __name__ == "__main__":
     # plot_random_spr_walks(nleaves=1000, nsteps=50, nruns=10, seed=168)
     # ola_distance_spr_walk_3000_leaves_short.pdf
     # plot_random_spr_walks(nleaves=3000, nsteps=50, nruns=10, seed=168)
+
+    plot_avg_spr_distance_vs_tree_size(distribution="yule")
     pass
