@@ -3,6 +3,9 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import seaborn as sns
+import pandas as pd
+
 from subprocess import run
 from ete3 import Tree
 from ola_encoding import (
@@ -78,9 +81,9 @@ def plot_avg_nni_distance_vs_tree_size(
 
     fig, ax = plt.subplots()
 
-    xs = []
-    ys = []
-    for n in [10, 20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900]:
+    data = []
+
+    for n in [10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900]:
         for _ in range(10):
             tree = get_random_tree(n_leaves=n)
             dists = []
@@ -88,14 +91,49 @@ def plot_avg_nni_distance_vs_tree_size(
             for _ in range(n_nbhrs):
                 tree_n = nni_neighbor(tree)
                 dists.append(ola_distance(tree, tree_n))
-            xs.append(n)
-            ys.append(np.average(dists))
+            data.append([n, np.average(dists)])
     
-    ax.scatter(xs, ys, alpha=0.6)
+    df = pd.DataFrame(data, columns=("n_leaves", "dist"))
+    sns.boxplot(data=df, x="n_leaves", y="dist", native_scale=False, ax=ax)
 
     ax.set_xlabel("Number of leaves")
     ax.set_ylabel("OLA distance")
     
+    sns.despine(fig, trim=True)
+    fig.savefig(output)
+
+def plot_height_vs_avg_spr_distance(
+    seed=None,
+    output="temp.pdf"
+):
+    # set random seed
+    if seed is not None:
+        random.seed(seed)
+
+    fig, ax = plt.subplots()
+
+    for n in [20, 50, 100, 200]:
+        xs = []
+        ys = []
+        for _ in range(30):
+            tree = get_random_tree(n_leaves=n)
+            dists = []
+            n_nbhrs = max(20, n // 5)
+            for _ in range(n_nbhrs):
+                tree_n = spr_neighbor(tree)
+                dists.append(ola_distance(tree, tree_n))            
+            # calculate tree height
+            height = tree.get_farthest_node()[1]
+            xs.append(height)
+            ys.append(np.average(dists))
+    
+        ax.scatter(xs, ys, alpha=0.8, label=n)
+
+    ax.set_xlabel("Tree height")
+    ax.set_ylabel("OLA distance")
+    ax.legend()
+
+    sns.despine(fig)
     fig.savefig(output)
 
 def plot_random_spr_walks(n_leaves=30, n_steps=10, n_runs=2, seed=None, output="temp.pdf"):
@@ -130,6 +168,7 @@ def plot_random_spr_walks(n_leaves=30, n_steps=10, n_runs=2, seed=None, output="
     ax.set_xlabel("SPR steps")
     ax.set_ylabel("OLA distance")
 
+    sns.despine(fig)
     fig.savefig(output)
 
 def plot_random_nni_walks(n_leaves=30, n_steps=10, n_runs=2, seed=None, output="temp.pdf"):
@@ -164,6 +203,7 @@ def plot_random_nni_walks(n_leaves=30, n_steps=10, n_runs=2, seed=None, output="
     ax.set_xlabel("NNI steps")
     ax.set_ylabel("OLA distance")
 
+    sns.despine(fig)
     fig.savefig(output)
 
 def ola_dists_random_nni_walk(n_leaves=30, n_steps=10):
@@ -486,7 +526,7 @@ def remove_line_numbering(file="test.log"):
 
 if __name__ == "__main__":
 
-    plot_random_nni_walks(n_leaves=100, n_steps=50, n_runs=10)
+    # plot_random_nni_walks(n_leaves=100, n_steps=50, n_runs=10)
     # ola_distance_spr_walk_30_leaves.pdf
     # plot_random_spr_walks(nleaves=30, nsteps=15, nruns=10, seed=168)
     # ola_distance_spr_walk_100_leaves.pdf
@@ -504,5 +544,9 @@ if __name__ == "__main__":
     # ola_distance_spr_walk_3000_leaves_short.pdf
     # plot_random_spr_walks(nleaves=3000, nsteps=50, nruns=10, seed=168)
 
-    plot_avg_spr_distance_vs_tree_size(distribution="yule")
+    # plot_avg_nni_distance_vs_tree_size(seed=168)
+    # nni_neighbors_distance_boxplot.pdf
+
+    # plot_avg_spr_distance_vs_tree_size(distribution="yule")
+    plot_height_vs_avg_spr_distance(seed=168)
     pass
