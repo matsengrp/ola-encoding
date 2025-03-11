@@ -247,14 +247,14 @@ def ola_dists_random_spr_walk(n_leaves=30, n_steps=10):
     return dists
 
 def plot_random_spr_walk_vs_spr_distance(
-    nleaves=30, nsteps=10, nruns=2, output="test.pdf"
+    n_leaves=30, n_steps=10, n_runs=2, output="test.pdf"
 ):
 
     fig, ax = plt.subplots()
 
-    for _ in range(nruns):
+    for _ in range(n_runs):
         command = (
-            f"random_spr_walk/random_spr_walk -ntax {nleaves} -niterations {nsteps-1} "
+            f"random_spr_walk/random_spr_walk -ntax {n_leaves} -niterations {n_steps-1} "
             "-sfreq 1 > temp.log"
         )
         run(
@@ -266,7 +266,7 @@ def plot_random_spr_walk_vs_spr_distance(
             f"cat temp.log | rspr/rspr -pairwise 0 1 > path_rspr_dists.log",
             shell=True
         )
-        # xs = range(nsteps)
+        # xs = range(n_steps)
         ys = np.genfromtxt("path_rspr_dists.log", delimiter=',').flat
         ax.plot(
             # xs,
@@ -276,7 +276,7 @@ def plot_random_spr_walk_vs_spr_distance(
         )
     # ax.set_aspect("equal")
 
-    fig.suptitle(f"random SPR walk on trees, with {nleaves} leaves and {nsteps} steps")
+    fig.suptitle(f"random SPR walk on trees, with {n_leaves} leaves and {n_steps} steps")
     ax.set_xlabel('SPR steps')
     ax.set_ylabel('SPR distance')
 
@@ -309,8 +309,8 @@ def make_scatterplot_from_lists(file1, file2, output="test.pdf"):
     )
     ax.set_aspect('equal')
 
-    nsteps = len(ys)
-    fig.suptitle(f"random walk on trees, with 30 leaves and {nsteps} steps")
+    n_steps = len(ys)
+    fig.suptitle(f"random walk on trees, with 30 leaves and {n_steps} steps")
     ax.set_xlabel('rSPR distance')
     ax.set_ylabel('vector-encoding distance')
 
@@ -342,8 +342,8 @@ def make_scatterplot_plus_histograms_from_lists(file1, file2, output="test.pdf")
     # show frequencies of y-values
     axs[1][1].barh(*np.unique(ys, return_counts=True))
 
-    nsteps = len(ys)
-    fig.suptitle(f"random walk on trees, with 30 leaves and {nsteps} steps")
+    n_steps = len(ys)
+    fig.suptitle(f"random walk on trees, with 30 leaves and {n_steps} steps")
     axs[1][0].set_xlabel('rSPR distance')
     axs[1][0].set_ylabel('vector-encoding distance')
 
@@ -527,26 +527,28 @@ def remove_line_numbering(file="test.log"):
 if __name__ == "__main__":
 
     # plot_random_nni_walks(n_leaves=100, n_steps=50, n_runs=10)
+
     # ola_distance_spr_walk_30_leaves.pdf
-    # plot_random_spr_walks(nleaves=30, nsteps=15, nruns=10, seed=168)
+    # plot_random_spr_walks(n_leaves=30, n_steps=15, n_runs=10, seed=168)
     # ola_distance_spr_walk_100_leaves.pdf
-    # plot_random_spr_walks(nleaves=100, nsteps=50, nruns=10, seed=168)
+    plot_random_spr_walks(n_leaves=100, n_steps=50, n_runs=10, seed=168)
     # ola_distance_spr_walk_500_leaves.pdf
-    # plot_random_spr_walks(nleaves=500, nsteps=250, nruns=10, seed=168)
+    # plot_random_spr_walks(n_leaves=500, n_steps=250, n_runs=10, seed=168)
     # ola_distance_spr_walk_500_leaves_short.pdf
-    # plot_random_spr_walks(nleaves=500, nsteps=50, nruns=10, seed=168)
+    # plot_random_spr_walks(n_leaves=500, n_steps=50, n_runs=10, seed=168)
     # ola_distance_spr_walk_300_leaves.pdf
-    # plot_random_spr_walks(nleaves=300, nsteps=150, nruns=10, seed=168)
+    # plot_random_spr_walks(n_leaves=300, n_steps=150, n_runs=10, seed=168)
     # ola_distance_spr_walk_300_leaves_short.pdf
-    # plot_random_spr_walks(nleaves=300, nsteps=50, nruns=10, seed=168)
+    # plot_random_spr_walks(n_leaves=300, n_steps=50, n_runs=10, seed=168)
     # ola_distance_spr_walk_1000_leaves_short.pdf
-    # plot_random_spr_walks(nleaves=1000, nsteps=50, nruns=10, seed=168)
+    # plot_random_spr_walks(n_leaves=1000, n_steps=50, n_runs=10, seed=168)
     # ola_distance_spr_walk_3000_leaves_short.pdf
-    # plot_random_spr_walks(nleaves=3000, nsteps=50, nruns=10, seed=168)
+    # plot_random_spr_walks(n_leaves=3000, n_steps=50, n_runs=10, seed=168)
 
     # plot_avg_nni_distance_vs_tree_size(seed=168)
     # nni_neighbors_distance_boxplot.pdf
+    # plot_height_vs_avg_spr_distance(seed=168)
+    # spr_neighbors_distance_vs_height.pdf
 
     # plot_avg_spr_distance_vs_tree_size(distribution="yule")
-    plot_height_vs_avg_spr_distance(seed=168)
     pass
