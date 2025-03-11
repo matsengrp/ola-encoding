@@ -15,6 +15,9 @@ def test_inverse():
         v_prime = to_vector(t)
         assert v == v_prime
 
+        t_prime = to_tree(v_prime)
+        assert t.write(format=9) == t_prime.write(format=9)
+
 def test_encoding():
     t = Tree("(0,1);")
     v = to_vector(t)
