@@ -1,5 +1,5 @@
 from itertools import combinations_with_replacement
-from random import randrange
+import random
 from typing import (
     List
 )
@@ -60,37 +60,46 @@ def get_root_label_from_vector(vec):
 Produce vectors or trees or vector-iterators or tree-iterators
 """
 
-def get_random_vector(n=30):
+def get_random_vector(n=30, seed=None):
     """
     Returns a uniformly random lenth-(n - 1) integer vector with the restriction that
-    -i <= a_i <= i for all i.
+    -i <= a_i <= i for all i = 0, 1, 2, ... .
     args:
         n: number of leaves
     """
+    if seed is not None:
+        random.seed(seed)
+
     vec = [None for _ in range(n - 1)]
     for i in range(n - 1):
-        vi = randrange(-i, i + 1)
+        vi = random.randrange(-i, i + 1)
         vec[i] = vi
     return vec
 
-def get_random_tree(n_leaves=30):
+def get_random_tree(n_leaves=30, seed=None):
     """
     args:
         n_leaves: number of leaves
     """
+    if seed is not None:
+        random.seed(seed)
+
     vec = get_random_vector(n_leaves)
     return to_tree(vec)
 
-def get_random_yule_tree(n_leaves=30):
+def get_random_yule_tree(n_leaves=30, seed=None):
     """
     A Yule tree is a tree constructed by adding a new leaf as the sister to a previous 
     leaf. In terms of the OLA encoding, this means the OLA entires are nonnegative
     args:
         n_leaves: number of leaves
     """
+    if seed is not None:
+        random.seed(seed)
+
     vec = [None for _ in range(n_leaves - 1)]
     for i in range(n_leaves - 1):
-        vi = randrange(0, i + 1)
+        vi = random.randrange(0, i + 1)
         vec[i] = vi
     return to_tree(vec)
 
