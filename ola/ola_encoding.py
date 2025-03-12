@@ -9,21 +9,24 @@ import warnings
 from random import randrange
 from ete3 import Tree
 
-def to_vector(tree):
+def to_vector(tree, alph_leaf_names=False):
     """
+    OLA encoding algorithm
     Args:
-        tree: ete3.Tree object. tree is assumed to be rooted 
-            and bifurcating, and have distinct leaf names.
+        tree: ete3.Tree object. tree is assumed to be rooted and bifurcating, and have 
+            consecutive integers 0, 1, 2, ... as leaf names.
+        alph_leaf_names: Bool. if `true`, input tree can have arbitrary distinct leaf
+            names.
     Returns:
-        a list of integers
+        a list of integers, which encodes the input tree
     """
     if not tree.is_root():
         raise ValueError("input tree should be rooted")
 
     n_leaves = len(tree.get_leaf_names())
+    # handle small cases, <= 2 leaves
     if n_leaves < 1:
         raise ValueError("input tree should have at least 1 leaf")
-    # handle small cases, < 2 leaves
     if n_leaves == 1:
         return []
     elif n_leaves == 2:
@@ -36,20 +39,29 @@ def to_vector(tree):
             features=["label"], 
             format_root_node=True,
             format=9))
-    sorted_leaf_names = sorted(tree_copy.get_leaf_names())
-    leaf_to_idx = {}
-    for (idx, name) in enumerate(sorted_leaf_names):
-        leaf_to_idx[name] = idx
-    # construct leaf dictionary for `tree_copy`
-    leaf_dict = {}
+
+    if alph_leaf_names:
+        # sort leaf names in alphabetical order
+        sorted_leaf_names = sorted(tree_copy.get_leaf_names())
+        leaf_to_idx = {}
+        for (idx, name) in enumerate(sorted_leaf_names):
+            leaf_to_idx[name] = idx
+        # rename leaf name to index
+        for leaf in tree_copy:
+            idx = leaf_to_idx[leaf.name]
+            leaf.name = str(idx)
+
+    # from here, assume leaf names are "0", "1", "2", ..., "n-1"
+    # construct list of leaves, ordered by label, for `tree_copy`
+    label_to_leaf = [None for _ in range(n_leaves)]
     for leaf in tree_copy:  # iterates through leaves
-        idx = leaf_to_idx[leaf.name]
-        leaf_dict[idx] = leaf
-    
+        idx = int(leaf.name)
+        label_to_leaf[idx] = leaf
+
     # perform internal node labelling
     for node in tree_copy.traverse(strategy='postorder'):
         if node.is_leaf():
-            idx = leaf_to_idx[node.name]
+            idx = int(node.name)
             node.label = idx
             node.clade_founder = idx
         else:
@@ -68,7 +80,7 @@ def to_vector(tree):
     for i in range(n_leaves - 1):
         idx = n_leaves - 1 - i
         # find sister node of leaf idx
-        leaf = leaf_dict[idx]
+        leaf = label_to_leaf[idx]
         sister = leaf.get_sisters()[0]
         # assign vector entry (to be reversed later)
         vector.append(int(sister.label))
@@ -81,14 +93,15 @@ def to_vector(tree):
 
 def to_tree(vector, names=None):
     """
+    OLA decoding algorithm
     Args:
         vector: list of integers with i-th entry in range {-i, ..., i}
         names: list of strings to be used as names of leaf nodes, strings
-            should be distinct
+            should be distinct. Default choice is ["0", "1", "2", ...]
     Returns:
         ete3.Tree object encoded by vector
     """
-    # check input vector is "proper"
+    # check input vector is "valid"
     for i, vi in enumerate(vector):
         if not isinstance(vi, int):
             raise ValueError(
@@ -101,7 +114,7 @@ def to_tree(vector, names=None):
             )
     n_leaves = len(vector) + 1
     if names is None:
-        # generate default names ['aa', 'ab', 'ac', ...]
+        # generate default names ['0', '1', '2', ...]
         names = default_names(n_leaves)
     else:
         # ensure that `names` is a list of strings
@@ -116,8 +129,8 @@ def to_tree(vector, names=None):
     if len(set(names)) < len(names):
         warnings.warn("leaf names provided are not distinct")
 
-    # initialize label-to-node dictionary, to avoid cost of tree search
-    label_to_node = {}
+    # initialize label-to-node list, to avoid cost of tree search
+    label_to_node = [None for _ in range(2 * n_leaves - 1)]
 
     # initialize tree; note `tree` has an extra "grand-root" node
     tree = Tree()
@@ -125,10 +138,10 @@ def to_tree(vector, names=None):
     child_0.label = 0
     label_to_node[0] = child_0
 
-    # build tree iteratively
+    # build tree iteratively, one leaf at a time
     for i in range(1, n_leaves):
         idx = vector[i - 1]
-        # get node with label=idx, using stored dict
+        # get node with label=idx, using stored list
         subtree = label_to_node[idx]
         # attach i-th leaf as sister of `subtree`, subdividing its parent-edge
         # to subdivide parent edge: add new node as sister of subtree-root
@@ -149,15 +162,24 @@ def to_tree(vector, names=None):
     final_tree.up = None
     return final_tree
 
-def default_names(n):
+def default_names(n, type="num"):
     """
-    generate default names ['aa', 'ab', 'ac', ...] used in `to_tree` function
+    generate default names ['0', '1', '2', ...] used in `to_tree` function. If type 
+    parameters "alpha" is selected, then output will be ['aa', 'ab', 'ac', ...]
+    Args:
+        n = number of names to output
+        type = "num" or "alph"
     """
-    names = [chr(97 + i % 26) for i in range (n)]
-    period = 26
-    while period < n:
-        names = [names[i // period][-1] + names[i] for i in range(n)]
-        period = 26 * period
+    if type == "num":
+        names = [str(i) for i in range(n)]
+    elif type == "alph":
+        names = [chr(97 + i % 26) for i in range (n)]
+        period = 26
+        while period < n:
+            names = [names[i // period][-1] + names[i] for i in range(n)]
+            period = 26 * period
+    else:
+        raise ValueError("type parameter must be \"num\" or \"alph\"")
     return names
 
 
@@ -320,7 +342,7 @@ def get_tree_neighborhood(start_tree):
 
 def random_vector_neighbor(start_vec):
     """
-    Returns a "proper" integer vector which has hamming distance 1 
+    Returns a "valid" integer vector which has hamming distance 1 
     from start_vec
     Idea of process:
         (i, j) is a randomly generated point in an n x n square, which lies
