@@ -41,7 +41,7 @@ By default, `ola.to_vector` assumes that the input tree has leaves named 0, 1, 2
 Trees with arbitrary leaf names can be encoded, by sorting names in alphabetical order.
 ```python
 >>> tree = ete3.Tree("(alice,((bob,carol),dave));")
->>> ola.to_vector(tree, alpha_leaf_names=True)  # [0, 1, -2]
+>>> ola.to_vector(tree, alph_leaf_names=True)  # [0, 1, -2]
 ```
 Convert an OLA code to its corresponding `ete3` tree.
 ```python
