@@ -3,8 +3,8 @@ from ete3 import Tree
 
 def spr_neighbor(tree):
     """
-    return a tree which differs from the input tree by one SPR (subtree-prune-regraft)
-    move
+    return a random tree which differs from the input tree by one SPR 
+    (subtree-prune-regraft) move
     """
     try:
         new_tree = tree.copy()
@@ -60,7 +60,7 @@ def spr_neighbor(tree):
 
 def nni_neighbor(tree):
     """
-    return a tree which differs from the input tree by one NNI (nearest-neighbor-
+    return a random tree which differs from the input tree by one NNI (nearest-neighbor-
     interchange) move
 
     i.e. the tree

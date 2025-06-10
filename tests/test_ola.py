@@ -1,6 +1,11 @@
 import random
 from ete3 import Tree
-from ola.ola_encoding import to_vector, to_tree
+from ola.ola_encoding import (
+    to_vector, 
+    to_tree, 
+    random_vector_neighbor, 
+    hamming_dist,
+)
 from ola.utils import get_random_vector
 from ola.tree_rearrangement import nni_neighbor
 
@@ -26,6 +31,12 @@ def test_encoding():
     t = Tree("((0,(1,4)),(((2,3),6),(5,7)));")
     v = to_vector(t)
     assert v == [0, -1, 2, 1, -3, -3, 5]
+
+def test_vector_neighbor():
+    for _ in range(100):
+        v = get_random_vector(30)
+        v_n = random_vector_neighbor(v)
+        assert 1 == hamming_dist(v, v_n)
 
 def test_nni_move():
     """

@@ -359,6 +359,7 @@ def random_vector_neighbor(start_vec):
         j += 1
     k = max(i, j)
 
+    # modify k-th entry of start_vec
     old_val = start_vec[k]
     # set new_val to i - j
     new_val = i - j
@@ -390,14 +391,17 @@ def lazy_random_vector_neighbor(start_vec):
     new_vec[k] = new_val
     return new_vec
 
-def random_tree_neighbor(start_tree):
+def ola_neighbor(start_tree):
+    """
+    return a random tree whose OLA code differs by one entry from the input tree
+    """
     start_vec = to_vector(start_tree)
     new_vec = random_vector_neighbor(start_vec)
     return to_tree(new_vec)
     
-def lazy_random_tree_neighbor(start_tree):
+def lazy_ola_neighbor(start_tree):
     """
-    Like `get_random_tree_neighbor` but allows output to be same as `start_tree`
+    Like `ola_neighbor` but allows output to be same as `start_tree`
     """
     start_vec = to_vector(start_tree)
     new_vec = lazy_random_vector_neighbor(start_vec)

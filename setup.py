@@ -18,8 +18,9 @@ setuptools.setup(
         "Programming Language :: Python :: 3.9",
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: MIT License",
+        # "License :: OSI Approved :: MIT License",
     ],
+    license="MIT",
     python_requires=">=3.9",
     install_requires=[
         "ete3 >= 3.0.0",

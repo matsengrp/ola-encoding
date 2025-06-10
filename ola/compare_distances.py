@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import seaborn as sns
 import pandas as pd
+import subprocess
 
 from subprocess import run
 from ete3 import Tree
@@ -13,7 +14,7 @@ from ola_encoding import (
     to_vector,
     hamming_dist,
     ola_distance,
-    random_tree_neighbor,
+    ola_neighbor,
 )
 from utils import (
     get_random_tree,
@@ -136,7 +137,86 @@ def plot_height_vs_avg_spr_distance(
     sns.despine(fig)
     fig.savefig(output)
 
-def plot_random_spr_walks(n_leaves=30, n_steps=10, n_runs=2, seed=None, output="temp.pdf"):
+def plot_ola_neighbor_spr_distance(
+    seed=None,
+    output="temp.pdf"
+):
+    """
+    Generate pairs of trees which are OLA neighbors, i.e. their OLA distance = 1, and 
+    plot their SPR distance vs their size
+    """
+    # set random seed
+    if seed is not None:
+        random.seed(seed)
+    
+    fig, ax = plt.subplots()
+
+    data = []
+
+    for n in [5, 10, 20, 50, 100, 200, 500]:
+        print(f"starting on {n} leaves")
+        # option 1: take averages
+        # for i in range(10):
+        #     tree = get_random_tree(n_leaves=n)
+        #     dists = []
+        #     n_nbhrs = max(10, n // 10)
+        #     for _ in range(n_nbhrs):
+        #         tree_n = ola_neighbor(tree)
+        #         # compute rSPR distance using Whidden's C program
+        #         dists.append(rspr_distance(tree, tree_n))
+        #     avg = np.average(dists)
+        #     data.append([n, avg])
+        #     print(f"{n} leaves; trial {i}; computed average = {avg}")
+
+        # option 2: no averages
+        for i in range(10):
+            tree = get_random_tree(n_leaves=n)
+            n_nbhrs = 10 # max(10, n // 10)
+            for _ in range(n_nbhrs):
+                tree_n = ola_neighbor(tree)
+                # compute rSPR distance using Whidden's C program
+                dist = rspr_distance(tree, tree_n)
+                data.append([n, dist])
+            print(f"{n} leaves; trial {i}; latest distance = {data[-1]}")
+
+    df = pd.DataFrame(data, columns=("n_leaves", "dist"))
+    sns.boxplot(
+        data=df, x="n_leaves", y="dist", native_scale=False, ax=ax,
+        whis=[0, 100],
+        notch=True,
+        width=0.8,
+        saturation=0.5,
+    )
+
+    ax.set_xlabel("Number of leaves")
+    ax.set_ylabel("SPR distance")
+
+    sns.despine(fig, trim=True)
+    fig.savefig(output)
+
+def rspr_distance(tree1, tree2):
+    """
+    Compute unrooted SPR distance between two trees, using Whidden's C++ program
+    """
+    nwk1 = tree1.write(format=9)
+    nwk2 = tree2.write(format=9)
+    command = f"echo -e '{nwk1}\n{nwk2}' | ../../rspr/rspr -total -q"
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+    if result.returncode == 0:
+        # command succeeded, print output
+        if result.stdout:
+            # print(result.stdout)
+            stdout_lines = result.stdout.split("\n")
+            dist_line = stdout_lines[-2]
+            assert dist_line[:14] == "total distance"
+            return int(dist_line.split("=")[1])
+    else:
+        raise ValueError
+
+def plot_random_spr_walks(
+    n_leaves=30, n_steps=10, n_runs=2, seed=None, output="temp.pdf"
+):
     """
     This function does the following:
         1. Generate a random SPR-walk in the space of trees with the specified number of
@@ -203,7 +283,7 @@ def plot_random_nni_walks(n_leaves=30, n_steps=10, n_runs=2, seed=None, output="
     ax.set_xlabel("NNI steps")
     ax.set_ylabel("OLA distance")
 
-    sns.despine(fig)
+    sns.despine(fig, trim=False)
     fig.savefig(output)
 
 def ola_dists_random_nni_walk(n_leaves=30, n_steps=10):
@@ -526,12 +606,12 @@ def remove_line_numbering(file="test.log"):
 
 if __name__ == "__main__":
 
-    # plot_random_nni_walks(n_leaves=100, n_steps=50, n_runs=10)
+    # plot_random_nni_walks(n_leaves=100, n_steps=50, n_runs=10, seed=168)
 
     # ola_distance_spr_walk_30_leaves.pdf
     # plot_random_spr_walks(n_leaves=30, n_steps=15, n_runs=10, seed=168)
     # ola_distance_spr_walk_100_leaves.pdf
-    plot_random_spr_walks(n_leaves=100, n_steps=50, n_runs=10, seed=168)
+    # plot_random_spr_walks(n_leaves=100, n_steps=50, n_runs=10, seed=168)
     # ola_distance_spr_walk_500_leaves.pdf
     # plot_random_spr_walks(n_leaves=500, n_steps=250, n_runs=10, seed=168)
     # ola_distance_spr_walk_500_leaves_short.pdf
@@ -551,4 +631,6 @@ if __name__ == "__main__":
     # spr_neighbors_distance_vs_height.pdf
 
     # plot_avg_spr_distance_vs_tree_size(distribution="yule")
+
+    plot_ola_neighbor_spr_distance(seed=168)
     pass
