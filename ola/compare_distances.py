@@ -156,28 +156,28 @@ def plot_ola_neighbor_spr_distance(
     for n in [5, 10, 20, 50, 100, 200, 500]:
         print(f"starting on {n} leaves")
         # option 1: take averages
-        # for i in range(10):
-        #     tree = get_random_tree(n_leaves=n)
-        #     dists = []
-        #     n_nbhrs = max(10, n // 10)
-        #     for _ in range(n_nbhrs):
-        #         tree_n = ola_neighbor(tree)
-        #         # compute rSPR distance using Whidden's C program
-        #         dists.append(rspr_distance(tree, tree_n))
-        #     avg = np.average(dists)
-        #     data.append([n, avg])
-        #     print(f"{n} leaves; trial {i}; computed average = {avg}")
-
-        # option 2: no averages
         for i in range(10):
             tree = get_random_tree(n_leaves=n)
-            n_nbhrs = 10 # max(10, n // 10)
+            dists = []
+            n_nbhrs = max(10, n // 10)
             for _ in range(n_nbhrs):
                 tree_n = ola_neighbor(tree)
                 # compute rSPR distance using Whidden's C program
-                dist = rspr_distance(tree, tree_n)
-                data.append([n, dist])
-            print(f"{n} leaves; trial {i}; latest distance = {data[-1]}")
+                dists.append(rspr_distance(tree, tree_n))
+            avg = np.average(dists)
+            data.append([n, avg])
+            print(f"{n} leaves; trial {i}; computed average = {avg}")
+
+        # option 2: no averages
+        # for i in range(10):
+        #     tree = get_random_tree(n_leaves=n)
+        #     n_nbhrs = 10 # max(10, n // 10)
+        #     for _ in range(n_nbhrs):
+        #         tree_n = ola_neighbor(tree)
+        #         # compute rSPR distance using Whidden's C program
+        #         dist = rspr_distance(tree, tree_n)
+        #         data.append([n, dist])
+        #     print(f"{n} leaves; trial {i}; latest distance = {data[-1]}")
 
     df = pd.DataFrame(data, columns=("n_leaves", "dist"))
     sns.boxplot(
@@ -185,10 +185,53 @@ def plot_ola_neighbor_spr_distance(
         whis=[0, 100],
         notch=True,
         width=0.8,
-        saturation=0.5,
+        alpha=0.6,
     )
 
     ax.set_xlabel("Number of leaves")
+    ax.set_ylabel("SPR distance")
+
+    sns.despine(fig, trim=True)
+    fig.savefig(output)
+
+def scatterplot_ola_neighbor_spr_distance(
+    seed=None,
+    output="temp.pdf"
+):
+    """
+    Generate pairs of trees which are OLA neighbors, i.e. their OLA distance = 1, and 
+    plot their SPR distance vs their size
+    """
+    # set random seed
+    if seed is not None:
+        random.seed(seed)
+    
+    fig, ax = plt.subplots()
+
+    data = []
+
+    for n in [5, 10, 20, 50, 100, 200, 500]:
+        print(f"starting on {n} leaves")
+        for i in range(10):
+            tree = get_random_tree(n_leaves=n)
+            n_nbhrs = 10
+            tree_n = ola_neighbor(tree)
+            for j in range(n_nbhrs):
+                # compute rSPR distance using Whidden's C program
+                dist = rspr_distance(tree, tree_n)
+                ola_dist = ola_distance(tree, tree_n)
+                data.append([n, dist, ola_dist])
+                tree_n = ola_neighbor(tree_n)
+            print(f"{n} leaves; trial {i}; latest distance = {data[-1]}")
+
+    df = pd.DataFrame(data, columns=("n_leaves", "dist", "ola_dist"))
+    sns.scatterplot(
+        data=df, x="ola_dist", y="dist", hue="n_leaves",
+        palette="husl", alpha=0.5,
+        ax=ax,
+    )
+
+    ax.set_xlabel("OLA distance")
     ax.set_ylabel("SPR distance")
 
     sns.despine(fig, trim=True)
@@ -633,4 +676,5 @@ if __name__ == "__main__":
     # plot_avg_spr_distance_vs_tree_size(distribution="yule")
 
     plot_ola_neighbor_spr_distance(seed=168)
+    # scatterplot_ola_neighbor_spr_distance(seed=168)
     pass
