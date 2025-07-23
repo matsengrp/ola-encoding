@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import seaborn as sns
 import pandas as pd
-import subprocess
 
 from subprocess import run
 from ete3 import Tree
@@ -24,6 +23,7 @@ from utils import (
 from tree_rearrangement import (
     nni_neighbor,
     spr_neighbor,
+    rspr_distance,
 )
 
 def plot_avg_spr_distance_vs_tree_size(
@@ -153,10 +153,11 @@ def plot_ola_neighbor_spr_distance(
 
     data = []
 
-    for n in [5, 10, 20, 50, 100, 200, 500]:
+    tree_sizes = [5, 10, 20, 50, 100, 200, 500]
+    for n in tree_sizes:
         print(f"starting on {n} leaves")
         # option 1: take averages
-        for i in range(10):
+        for i in range(60):
             tree = get_random_tree(n_leaves=n)
             dists = []
             n_nbhrs = max(10, n // 10)
@@ -165,8 +166,9 @@ def plot_ola_neighbor_spr_distance(
                 # compute rSPR distance using Whidden's C program
                 dists.append(rspr_distance(tree, tree_n))
             avg = np.average(dists)
+            max_dist = np.max(dists)
             data.append([n, avg])
-            print(f"{n} leaves; trial {i}; computed average = {avg}")
+            print(f"{n} leaves; trial {i}; computed average = {avg}; max = {max_dist}")
 
         # option 2: no averages
         # for i in range(10):
@@ -180,13 +182,19 @@ def plot_ola_neighbor_spr_distance(
         #     print(f"{n} leaves; trial {i}; latest distance = {data[-1]}")
 
     df = pd.DataFrame(data, columns=("n_leaves", "dist"))
-    sns.boxplot(
-        data=df, x="n_leaves", y="dist", native_scale=False, ax=ax,
-        whis=[0, 100],
-        notch=True,
+    ax.set_xscale("log")
+    bp = sns.boxplot(
+        data=df, x="n_leaves", y="dist", ax=ax,
+        native_scale=True,
+        # whis=[0, 100],
+        # notch=True,
         width=0.8,
-        alpha=0.6,
+        # alpha=0.6,
     )
+    # bp.set_xticklabels(tree_sizes)
+    # bp.set_xticks(tree_sizes)
+    ax.set_xticks(tree_sizes)
+    ax.set_xticklabels([str(n) for n in tree_sizes])
 
     ax.set_xlabel("Number of leaves")
     ax.set_ylabel("SPR distance")
@@ -236,26 +244,6 @@ def scatterplot_ola_neighbor_spr_distance(
 
     sns.despine(fig, trim=True)
     fig.savefig(output)
-
-def rspr_distance(tree1, tree2):
-    """
-    Compute unrooted SPR distance between two trees, using Whidden's C++ program
-    """
-    nwk1 = tree1.write(format=9)
-    nwk2 = tree2.write(format=9)
-    command = f"echo -e '{nwk1}\n{nwk2}' | ../../rspr/rspr -total -q"
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
-
-    if result.returncode == 0:
-        # command succeeded, print output
-        if result.stdout:
-            # print(result.stdout)
-            stdout_lines = result.stdout.split("\n")
-            dist_line = stdout_lines[-2]
-            assert dist_line[:14] == "total distance"
-            return int(dist_line.split("=")[1])
-    else:
-        raise ValueError
 
 def plot_random_spr_walks(
     n_leaves=30, n_steps=10, n_runs=2, seed=None, output="temp.pdf"

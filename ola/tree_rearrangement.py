@@ -1,4 +1,5 @@
 import random
+import subprocess
 from ete3 import Tree
 
 def spr_neighbor(tree):
@@ -121,3 +122,26 @@ def all_nni_neighbors(tree):
     returns an iterator of all NNI neighbors of the input tree
     """
     pass
+
+def rspr_distance(tree1, tree2):
+    """
+    Compute unrooted SPR distance between two trees, using Whidden's C++ program
+    """
+    nwk1 = tree1.write(format=9)
+    nwk2 = tree2.write(format=9)
+    command = f"echo -e '{nwk1}\n{nwk2}' | ../../rspr/rspr -total -q"
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+
+    if result.returncode == 0:
+        # command succeeded, print output
+        if result.stdout:
+            # print(result.stdout)
+            stdout_lines = result.stdout.split("\n")
+            dist_line = stdout_lines[-2]
+            assert dist_line[:14] == "total distance"
+            return int(dist_line.split("=")[1])
+    else:
+        print("tried command:", command)
+        print("resulted in error:", result.stdout)
+        raise ValueError(result.stdout)
+
