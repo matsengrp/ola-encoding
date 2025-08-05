@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import seaborn as sns
 import pandas as pd
+from pathlib import Path
 
 from subprocess import run
 from ete3 import Tree
@@ -151,37 +152,42 @@ def plot_ola_neighbor_spr_distance(
     
     fig, ax = plt.subplots()
 
-    data = []
-
     tree_sizes = [5, 10, 20, 50, 100, 200, 500]
-    for n in tree_sizes:
-        print(f"starting on {n} leaves")
-        # option 1: take averages
-        for i in range(60):
-            tree = get_random_tree(n_leaves=n)
-            dists = []
-            n_nbhrs = max(10, n // 10)
-            for _ in range(n_nbhrs):
-                tree_n = ola_neighbor(tree)
-                # compute rSPR distance using Whidden's C program
-                dists.append(rspr_distance(tree, tree_n))
-            avg = np.average(dists)
-            max_dist = np.max(dists)
-            data.append([n, avg])
-            print(f"{n} leaves; trial {i}; computed average = {avg}; max = {max_dist}")
+    if Path("temp.csv").is_file():
+        df = pd.read_csv("temp.csv")
+    else:
+        data = []
 
-        # option 2: no averages
-        # for i in range(10):
-        #     tree = get_random_tree(n_leaves=n)
-        #     n_nbhrs = 10 # max(10, n // 10)
-        #     for _ in range(n_nbhrs):
-        #         tree_n = ola_neighbor(tree)
-        #         # compute rSPR distance using Whidden's C program
-        #         dist = rspr_distance(tree, tree_n)
-        #         data.append([n, dist])
-        #     print(f"{n} leaves; trial {i}; latest distance = {data[-1]}")
+        for n in tree_sizes:
+            print(f"starting on {n} leaves")
+            # option 1: take averages
+            for i in range(50):
+                tree = get_random_tree(n_leaves=n)
+                dists = []
+                n_nbhrs = max(10, n // 10)
+                for _ in range(n_nbhrs):
+                    tree_n = ola_neighbor(tree)
+                    # compute rSPR distance using Whidden's C program
+                    dists.append(rspr_distance(tree, tree_n))
+                avg = np.average(dists)
+                max_dist = np.max(dists)
+                data.append([n, avg])
+                print(f"{n} leaves; trial {i}; computed average = {avg}; max = {max_dist}")
 
-    df = pd.DataFrame(data, columns=("n_leaves", "dist"))
+            # option 2: no averages
+            # for i in range(10):
+            #     tree = get_random_tree(n_leaves=n)
+            #     n_nbhrs = 10 # max(10, n // 10)
+            #     for _ in range(n_nbhrs):
+            #         tree_n = ola_neighbor(tree)
+            #         # compute rSPR distance using Whidden's C program
+            #         dist = rspr_distance(tree, tree_n)
+            #         data.append([n, dist])
+            #     print(f"{n} leaves; trial {i}; latest distance = {data[-1]}")
+
+        df = pd.DataFrame(data, columns=("n_leaves", "dist"))
+        # save data to csv file
+        df.to_csv("temp.csv")
     ax.set_xscale("log")
     bp = sns.boxplot(
         data=df, x="n_leaves", y="dist", ax=ax,
@@ -191,10 +197,10 @@ def plot_ola_neighbor_spr_distance(
         width=0.8,
         # alpha=0.6,
     )
-    # bp.set_xticklabels(tree_sizes)
-    # bp.set_xticks(tree_sizes)
-    ax.set_xticks(tree_sizes)
-    ax.set_xticklabels([str(n) for n in tree_sizes])
+    bp.set_xticks(tree_sizes)
+    bp.set_xticklabels(tree_sizes)
+    # ax.set_xticks(tree_sizes)
+    # ax.set_xticklabels([str(n) for n in tree_sizes])
 
     ax.set_xlabel("Number of leaves")
     ax.set_ylabel("SPR distance")
