@@ -104,6 +104,40 @@ def plot_avg_nni_distance_vs_tree_size(
     sns.despine(fig, trim=True)
     fig.savefig(output)
 
+def plot_height_vs_max_spr_distance(
+    seed=None,
+    output="temp.pdf"
+):
+    # set random seed
+    if seed is not None:
+        random.seed(seed)
+
+    fig, ax = plt.subplots()
+
+    for n in [20, 50, 100, 200]:
+        xs = []
+        ys = []
+        for _ in range(30):
+            tree = get_random_tree(n_leaves=n)
+            dists = []
+            n_nbhrs = max(20, n // 5)
+            for _ in range(n_nbhrs):
+                tree_n = spr_neighbor(tree)
+                dists.append(ola_distance(tree, tree_n))            
+            # calculate tree height
+            height = tree.get_farthest_node()[1]
+            xs.append(height)
+            ys.append(np.max(dists))
+    
+        ax.scatter(xs, ys, alpha=0.8, label=n)
+
+    ax.set_xlabel("Tree height")
+    ax.set_ylabel("OLA distance")
+    ax.legend()
+
+    sns.despine(fig)
+    fig.savefig(output)
+
 def plot_height_vs_avg_spr_distance(
     seed=None,
     output="temp.pdf"
@@ -666,9 +700,10 @@ if __name__ == "__main__":
     # nni_neighbors_distance_boxplot.pdf
     # plot_height_vs_avg_spr_distance(seed=168)
     # spr_neighbors_distance_vs_height.pdf
+    plot_height_vs_max_spr_distance(seed=168)
 
     # plot_avg_spr_distance_vs_tree_size(distribution="yule")
 
-    plot_ola_neighbor_spr_distance(seed=168)
+    # plot_ola_neighbor_spr_distance(seed=168)
     # scatterplot_ola_neighbor_spr_distance(seed=168)
     pass
