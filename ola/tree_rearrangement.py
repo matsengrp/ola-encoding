@@ -111,17 +111,17 @@ def nni_neighbor(tree):
 
     return new_tree
 
-def all_spr_neighbors(tree):
-    """
-    returns an iterator of all SPR neighbors of the input tree
-    """
-    pass
+# def all_spr_neighbors(tree):
+#     """
+#     returns an iterator of all SPR neighbors of the input tree
+#     """
+#     pass
     
-def all_nni_neighbors(tree):
-    """
-    returns an iterator of all NNI neighbors of the input tree
-    """
-    pass
+# def all_nni_neighbors(tree):
+#     """
+#     returns an iterator of all NNI neighbors of the input tree
+#     """
+#     pass
 
 def rspr_distance(tree1, tree2):
     """
