@@ -2,7 +2,8 @@
 Test how OLA distance changes under shuffling leaf labels
 """
 from math import isqrt
-from random import shuffle
+import random
+# from random import shuffle
 from matplotlib import pyplot as plt
 from matplotlib import cm
 import numpy as np
@@ -19,18 +20,27 @@ from utils import (
 )
 from tree_rearrangement import spr_neighbor
 
-def shuffle_labels(tree, permutation):
+def shuffle_labels(tree, permutation=None):
     """
     returns a new tree whose labels are shuffled according to `permutation`
 
     Args:
         tree: ete3 Tree object
-        permutation (list): list of integers from 0 to `n_leaves` - 1, in shuffled order
+        permutation (list or None): 
+            list of integers from 0 to `n_leaves` - 1, in shuffled order
+            if None, then return a random shuffling of labels
     """
     new_tree = tree.copy()
     # create leaf shuffle dictionary from permutation
     leaf_names = sorted(tree.get_leaf_names())
-    assert len(leaf_names) == len(permutation)
+    n_leaves = len(leaf_names)
+
+    # choose random permutation, if not provided in argument
+    if permutation is None:
+        permutation = list(range(n_leaves))
+        random.shuffle(permutation)
+    
+    assert n_leaves == len(permutation)
     leaf_shuffle = {}
     for i, name in enumerate(leaf_names):
         leaf_shuffle[name] = leaf_names[permutation[i]]
@@ -47,7 +57,7 @@ def avg_ola_distance_shuffle(tree1, tree2, n_shuffles=10):
     distances = [dist]
     for _ in range(n_shuffles - 1):
         perm = list(range(n_leaves))
-        shuffle(perm)
+        random.shuffle(perm)
         shuf_tree1 = shuffle_labels(tree1, perm)
         shuf_tree2 = shuffle_labels(tree2, perm)
         dist = ola_distance(shuf_tree1, shuf_tree2)
@@ -71,7 +81,7 @@ def plot_dist_vs_shuffle_on_spr_walk(
 
         # create random permutation for leaf labels
         perm = list(range(n_leaves))
-        shuffle(perm)
+        random.shuffle(perm)
         shuf_tree1 = shuffle_labels(tree1, perm)
 
         dist_pairs = []
@@ -114,7 +124,7 @@ def plot_shuffled_dist_on_spr_walk(n_leaves, n_steps, out_file="temp.pdf"):
     tree_0 = get_random_tree(n_leaves)
     # create random leaf label shuffle
     perm = list(range(n_leaves))
-    shuffle(perm)
+    random.shuffle(perm)
     shuf_tree_0 = shuffle_labels(tree_0, perm)
     # initialize distance lists
     dists = [0]
@@ -149,7 +159,7 @@ def plot_avg_ola_dist_on_spr_walk(n_leaves, n_steps, out_file="temp.pdf"):
     # create and store shuffles
     perms = [list(range(n_leaves)) for _ in range(10)]
     for perm in perms:
-        shuffle(perm)
+        random.shuffle(perm)
     # initialize distance lists
     dists = [[0] for _ in range(10)]
     avg_dists = [0.]
@@ -219,7 +229,7 @@ def near_mid_far_test(seed=None, n_leaves=200, n_perms=10, output="temp.pdf"):
     # create and store shuffles
     perms = [list(range(n_leaves)) for _ in range(n_perms)]
     for perm in perms:
-        shuffle(perm)
+        random.shuffle(perm)
     data = []
     for spr_dist in spr_dists:
         tree = spr_dist_trees[spr_dist]
