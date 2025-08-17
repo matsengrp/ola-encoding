@@ -2,37 +2,48 @@ import random
 import subprocess
 from ete3 import Tree
 
-def spr_neighbor(tree):
+def spr_neighbor(tree, max_tries=100):
     """
     return a random tree which differs from the input tree by one SPR 
     (subtree-prune-regraft) move
     """
+    # check that input tree has at least 3 leaves
+    n_leaves = len(tree.get_leaf_names())
+    if n_leaves < 3:
+        raise ValueError("Input tree must have at least 3 leaves")
+    
     try:
         new_tree = tree.copy()
     except RecursionError:
-        # copy tree via Newick string
+        # is tree is too large, copy tree via Newick string
         newick = tree.write(format=9)
         new_tree = Tree(newick)
     node_list = list(new_tree.traverse())
 
-    # choose regraft location on edge above random node
-    regraft_node = random.choice(node_list)
-
-    # choose prune location on edge above random node
+    # choose prune-location and regraft-location
     prune_node_found = False
     while not prune_node_found:
-        prune_node = random.choice(node_list)
-        # check that `prune_node` is not adjacent to `regraft_node`, to avoid identitcal
-        # tree after SPR move
-        if prune_node.up == regraft_node.up:
-            continue
-        if prune_node.up == regraft_node:
-            continue
-        # check that `prune_node` is not an ancestor of `regraft_node`, to avoid invalid
-        # SPR move
-        mrca = new_tree.get_common_ancestor(prune_node, regraft_node)
-        if mrca != prune_node:
-            prune_node_found = True
+        # choose regraft location on edge above random node
+        regraft_node = random.choice(node_list)
+
+        # choose prune location on edge above random node
+        for _ in range(max_tries):
+        # while not prune_node_found:
+            prune_node = random.choice(node_list)
+            # check that `prune_node` is not adjacent to `regraft_node`, to avoid 
+            # identitcal tree after SPR move
+            if prune_node.up == regraft_node.up:
+                continue
+            if prune_node.up == regraft_node:
+                continue
+            # check that `prune_node` is not an ancestor of `regraft_node`, to avoid
+            # invalid SPR move
+            mrca = new_tree.get_common_ancestor(prune_node, regraft_node)
+            if mrca != prune_node:
+                prune_node_found = True
+                break
+    if not prune_node_found:
+        raise RuntimeError("didn't find prune and regraft locations")
 
     # add new node on the regraft edge, above `regraft_node`
     if not regraft_node.is_leaf():
