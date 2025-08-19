@@ -1,6 +1,7 @@
 """
 Test how OLA distance changes under shuffling leaf labels
 """
+import json
 from math import isqrt
 import random
 # from random import shuffle
@@ -49,15 +50,29 @@ def shuffle_labels(tree, permutation=None):
         leaf.name = leaf_shuffle[leaf.name]
     return new_tree
 
-def avg_ola_distance_shuffle(tree1, tree2, n_shuffles=10):
-    names = tree1.get_leaf_names()
-    n_leaves = len(names)
+def avg_ola_distance_shuffle(tree1, tree2, n_shuffles=10, shuffles=None):
+    """
+    Args:
+        tree1, tree2: ete3 Tree objects
+        n_shuffles: integer
+        shuffles: list of permutations
+    """
+    if shuffles is None:
+        # generate random shuffles
+        names = tree1.get_leaf_names()
+        n_leaves = len(names)
 
-    dist = ola_distance(tree1, tree2)
-    distances = [dist]
-    for _ in range(n_shuffles - 1):
-        perm = list(range(n_leaves))
-        random.shuffle(perm)
+        shuffles = []
+        for _ in range(n_shuffles - 1):
+            perm = list(range(n_leaves))
+            random.shuffle(perm)
+            shuffles.append(perm)
+
+    # else: `shuffles` is list of leaf ordering given in argument 
+    # dist = ola_distance(tree1, tree2)
+    # distances = [dist]
+    distances = []
+    for perm in shuffles:
         shuf_tree1 = shuffle_labels(tree1, perm)
         shuf_tree2 = shuffle_labels(tree2, perm)
         dist = ola_distance(shuf_tree1, shuf_tree2)
@@ -198,10 +213,92 @@ def plot_avg_ola_dist_on_spr_walk(n_leaves, n_steps, out_file="temp.pdf", seed=N
 
     fig.savefig(out_file)
 
-def variance_ola_shuffle(seed=None):
+def correlation_spr_walk_ola_shuffle(
+    n_leaves=100, n_steps=100, n_walks=50, 
+    load_data=False, out_file="temp.pdf", seed=None
+):
+    """
+    Generates a collection of SPR walks. For each walk, we compute the distance from the
+    n-th tree to the starting tree, using RF-distance, OLA-distance, and OLA-distance
+    averaged over a collection of 10 random leaf orders
+    """
     # set random seed
     if seed is not None:
         random.seed(seed)
+
+    if load_data:
+        with open("temp_RF_dists.json", "r") as fh:
+            rf_dists = json.load(fh)
+        with open("temp_OLA_dists.json", "r") as fh:
+            ola_dists = json.load(fh)
+        with open("temp_OLA_avg_dists.json", "r") as fh:
+            ola_avg_dists = json.load(fh)
+    else:  # compute distances along SPR walks
+        # generate random starting trees
+        start_trees = [get_random_tree(n_leaves) for _ in range(n_walks)]
+        # generate random SPR walk from each start tree
+        spr_walks = [[tree] for tree in start_trees]
+        for i in range(n_walks):
+            tree = start_trees[i]
+            for _ in range(n_steps):
+                tree = spr_neighbor(tree)
+                spr_walks[i].append(tree)
+        ## print([[tree.write(format=9) for tree in walk] for walk in spr_walks])
+        # compute RF distances
+        rf_dists = [[0] for _ in range(n_walks)]
+        for i in range(n_walks):
+            tree_0 = spr_walks[i][0]
+            for j in range(n_steps):
+                tree = spr_walks[i][j + 1]
+                d = tree_0.robinson_foulds(tree)[0]
+                rf_dists[i].append(d)
+        print("RF:", rf_dists)
+        # compute OLA distances
+        ola_dists = [[0] for _ in range(n_walks)]
+        for i in range(n_walks):
+            tree_0 = spr_walks[i][0]
+            for j in range(n_steps):
+                tree = spr_walks[i][j + 1]
+                d = ola_distance(tree_0, tree)
+                ola_dists[i].append(d)
+        print("OLA:", ola_dists)
+
+        # generate random shuffles
+        perms = [list(range(n_leaves)) for _ in range(10)]
+        for perm in perms:
+            random.shuffle(perm)
+
+        # compute average OLA distances
+        ola_avg_dists = [[0] for _ in range(n_walks)]
+        for i in range(n_walks):
+            tree_0 = spr_walks[i][0]
+            for j in range(n_steps):
+                tree = spr_walks[i][j + 1]
+                d, std = avg_ola_distance_shuffle(tree_0, tree, shuffles=perms)
+                ola_avg_dists[i].append(d)
+            print(f"  finished OLA avg for walk {i}")
+        print("avg OLA:", ola_avg_dists)
+
+        # save data
+        with open("temp_RF_dists.json", "w") as fh:
+            json.dump(rf_dists, fh)
+        with open("temp_OLA_dists.json", "w") as fh:
+            json.dump(ola_dists, fh)
+        with open("temp_OLA_avg_dists.json", "w") as fh:
+            json.dump(ola_avg_dists, fh)
+    
+
+    # compute correlation coefficients
+    corr_data = {"RF": [], "OLA": [], "avg_OLA": []}
+    steps = np.array(range(n_steps + 1))
+    for i in range(n_walks):
+        rf_d = rf_dists[i]
+        corr_data["RF"].append(np.corrcoef(steps, rf_d)[0, 1])
+        ola_d = ola_dists[i]
+        corr_data["OLA"].append(np.corrcoef(steps, ola_d)[0, 1])
+        avg_ola_d = ola_avg_dists[i]
+        corr_data["avg_OLA"].append(np.corrcoef(steps, avg_ola_d)[0, 1])
+    print("correlations:\n", corr_data)
 
     pass
 
@@ -269,7 +366,13 @@ def near_mid_far_test(n_leaves=200, n_perms=10, output="temp.pdf", seed=None):
 if __name__ == "__main__":
     # plot_dist_vs_shuffle_on_spr_walk(n_leaves=500, n_steps=60)
     # plot_shuffled_dist_on_spr_walk(n_leaves=300, n_steps=30)
-    plot_avg_ola_dist_on_spr_walk(n_leaves=100, n_steps=100, seed=168)
+
+    # plot_avg_ola_dist_on_spr_walk(n_leaves=100, n_steps=100, seed=168)
+    # ola_dist_shuffling_on_spr_walk.pdf
 
     # near_mid_far_test(n_leaves=200, seed=168)
+
+    correlation_spr_walk_ola_shuffle(
+        n_leaves=100, n_steps=30, n_walks=20, load_data=True, seed=168
+    )
 
