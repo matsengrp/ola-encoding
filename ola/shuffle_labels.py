@@ -146,7 +146,7 @@ def plot_shuffled_dist_on_spr_walk(n_leaves, n_steps, out_file="temp.pdf"):
 
     fig.savefig(out_file)
 
-def plot_avg_ola_dist_on_spr_walk(n_leaves, n_steps, out_file="temp.pdf"):
+def plot_avg_ola_dist_on_spr_walk(n_leaves, n_steps, out_file="temp.pdf", seed=None):
     """
     Function does the following:
         1. Choose a random starting tree with `n_leaves` leaves, 
@@ -154,6 +154,10 @@ def plot_avg_ola_dist_on_spr_walk(n_leaves, n_steps, out_file="temp.pdf"):
         3. plot the average OLA distance from the starting tree, averaging over a random
             choice of leaf label shuffles
     """
+    # set random seed
+    if seed is not None:
+        random.seed(seed)
+
     # create starting tree
     tree_0 = get_random_tree(n_leaves)
     # create and store shuffles
@@ -180,20 +184,28 @@ def plot_avg_ola_dist_on_spr_walk(n_leaves, n_steps, out_file="temp.pdf"):
         std_devs.append(shuf_dists.std())
 
     # plot distances
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(2)
     for i in range(10):
-        ax.plot(dists[i], alpha=0.5, color="C0")
-    ax.plot(avg_dists, alpha=0.9, marker="o", color="C0")
+        ax[0].plot(dists[i], alpha=0.5, color="C0")
+    ax[0].plot(avg_dists, alpha=0.9, marker="o", color="C0")
     # plot standard deviations
-    ax.plot(std_devs, alpha=0.5, marker="o", color="C1")
-    ax.fill_between(range(n_steps + 1), std_devs, alpha=0.5, color="C1")
+    ax[1].plot(std_devs, alpha=0.5, marker="o", color="C1")
+    ax[1].fill_between(range(n_steps + 1), std_devs, alpha=0.5, color="C1")
 
-    ax.set_xlabel(f"SPR steps")
-    ax.set_ylabel(f"OLA distance")
+    ax[1].set_xlabel(f"SPR steps")
+    ax[0].set_ylabel(f"OLA distance")
+    ax[1].set_ylabel(f"std. deviation of OLA dist.")
 
     fig.savefig(out_file)
 
-def near_mid_far_test(seed=None, n_leaves=200, n_perms=10, output="temp.pdf"):
+def variance_ola_shuffle(seed=None):
+    # set random seed
+    if seed is not None:
+        random.seed(seed)
+
+    pass
+
+def near_mid_far_test(n_leaves=200, n_perms=10, output="temp.pdf", seed=None):
     """
     1. Choose a focal tree T_0
     2. Choose trees T_1, T_2, T_3, which have increasing distances from T_0
@@ -253,13 +265,11 @@ def near_mid_far_test(seed=None, n_leaves=200, n_perms=10, output="temp.pdf"):
     sns.despine(fig, trim=True)
     fig.savefig(output)
 
-def main():
-    pass
 
 if __name__ == "__main__":
     # plot_dist_vs_shuffle_on_spr_walk(n_leaves=500, n_steps=60)
     # plot_shuffled_dist_on_spr_walk(n_leaves=300, n_steps=30)
-    # plot_avg_ola_dist_on_spr_walk(n_leaves=500, n_steps=100)
+    plot_avg_ola_dist_on_spr_walk(n_leaves=100, n_steps=100, seed=168)
 
-    near_mid_far_test(seed=168, n_leaves=200)
+    # near_mid_far_test(n_leaves=200, seed=168)
 
