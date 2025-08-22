@@ -290,11 +290,11 @@ def correlation_spr_walk_ola_shuffle(
     
 
     # compute correlation coefficients
-    corr_data = {"RF": [], "OLA": [], "avg_OLA": []}
+    # corr_data = {"RF": [], "OLA": [], "avg_OLA": []}
     data = []
     steps = np.array(range(n_steps + 1))
     for i in range(n_walks):
-        for k in range(10, n_steps+1, 10):
+        for k in range(20, n_steps+1, 20):
             steps_to_k = steps[:k + 1]
             rf_d = rf_dists[i][:k + 1]
             ola_d = ola_dists[i][:k + 1]
@@ -303,28 +303,34 @@ def correlation_spr_walk_ola_shuffle(
             ola_corr = np.corrcoef(steps_to_k, ola_d)[0, 1]
             avg_ola_corr = np.corrcoef(steps_to_k, avg_ola_d)[0, 1]
 
-            corr_data["RF"].append((k, rf_corr))
-            corr_data["OLA"].append((k, ola_corr))
-            corr_data["avg_OLA"].append((k, avg_ola_corr))
+            # corr_data["RF"].append((k, rf_corr))
+            # corr_data["OLA"].append((k, ola_corr))
+            # corr_data["avg_OLA"].append((k, avg_ola_corr))
 
             data.append(["RF", k, rf_corr, i])
             data.append(["OLA", k, ola_corr, i])
             data.append(["mean OLA", k, avg_ola_corr, i])
-    print("correlations:\n", corr_data)
+    # print("correlations:\n", corr_data)
 
     df = pd.DataFrame(data, columns=("dist_type", "step_limit", "corr", "walk_id"))
 
     fig, ax = plt.subplots()
 
-    # sns.lineplot(corr_data["RF"], ax=ax)
-    # sns.lineplot(corr_data["OLA"], ax=ax)
-    # sns.lineplot(corr_data["avg_OLA"], ax=ax)
-    sns.boxplot(data=df, x="step_limit", y="corr", hue="dist_type", ax=ax)
+    # palette = [sns.color_palette()[i] for i in [0, 5, 8]]
+    # palette = [sns.color_palette("Paired")[i] for i in [1, 3, 2]]
+    palette = [sns.color_palette("Paired")[i] for i in [1, 5, 4]]
+    sns.boxplot(
+        data=df, x="step_limit", y="corr", hue="dist_type", palette=palette, ax=ax
+    )
     ax.set_xlabel("Number of SPR steps")
-    ax.set_ylabel("Pearson correlation between measured distance and SPR steps")
+    ax.set_ylabel("Pearson correlation")
+    ax.legend(
+        bbox_to_anchor=(1.21, 0.03), loc="lower right", title="distance"
+    )
 
-    sns.despine(fig, offset=10, trim=True)
-    fig.savefig(out_file)
+    sns.despine(fig, offset=2, trim=True)
+    # plt.tight_layout()
+    fig.savefig(out_file, bbox_inches="tight")
 
 
 def near_mid_far_test(n_leaves=200, n_perms=10, output="temp.pdf", seed=None):
@@ -398,6 +404,6 @@ if __name__ == "__main__":
     # near_mid_far_test(n_leaves=200, seed=168)
 
     correlation_spr_walk_ola_shuffle(
-        n_leaves=100, n_steps=100, n_walks=20, load_data=True, seed=168
+        n_leaves=100, n_steps=100, n_walks=50, load_data=True, seed=168
     )
 
