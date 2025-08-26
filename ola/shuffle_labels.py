@@ -332,6 +332,57 @@ def correlation_spr_walk_ola_shuffle(
     # plt.tight_layout()
     fig.savefig(out_file, bbox_inches="tight")
 
+def correlation_spr_walk_ola_shuffle_table(
+    n_leaves=100, n_steps=100, n_walks=50, 
+    load_data=True, seed=None
+):
+    if not load_data:
+        raise ValueError("not implemented")
+    else:
+        print("loading data from files")
+        with open("temp_RF_dists.json", "r") as fh:
+            rf_dists = json.load(fh)
+        with open("temp_OLA_dists.json", "r") as fh:
+            ola_dists = json.load(fh)
+        with open("temp_OLA_avg_dists.json", "r") as fh:
+            ola_avg_dists = json.load(fh)
+
+    # compute correlation coefficients
+    corr_means = {"RF": [], "OLA": [], "avg_OLA": []}
+    corr_medians = {"RF": [], "OLA": [], "avg_OLA": []}
+    data = []
+    steps = np.array(range(n_steps + 1))
+    for k in range(10, n_steps+1, 10):
+        k_data = {"RF": [], "OLA": [], "avg_OLA": []}
+        for i in range(n_walks):
+            steps_to_k = steps[0:k + 1]
+            rf_d = rf_dists[i][0:k + 1]
+            ola_d = ola_dists[i][0:k + 1]
+            avg_ola_d = ola_avg_dists[i][0:k + 1]
+
+            rf_corr = np.corrcoef(steps_to_k, rf_d)[0, 1]
+            ola_corr = np.corrcoef(steps_to_k, ola_d)[0, 1]
+            avg_ola_corr = np.corrcoef(steps_to_k, avg_ola_d)[0, 1]
+
+            k_data["RF"].append(rf_corr)
+            k_data["OLA"].append(ola_corr)
+            k_data["avg_OLA"].append(avg_ola_corr)
+        # average over all walks
+        corr_means["RF"].append(np.average(k_data["RF"]))
+        corr_medians["RF"].append(np.median(k_data["RF"]))
+        corr_means["OLA"].append(np.average(k_data["OLA"]))
+        corr_medians["OLA"].append(np.median(k_data["OLA"]))
+        corr_means["avg_OLA"].append(np.average(k_data["avg_OLA"]))
+        corr_medians["avg_OLA"].append(np.median(k_data["avg_OLA"]))
+
+        # data.append(["RF", k, rf_corr])
+        # data.append(["OLA", k, ola_corr])
+        # data.append(["mean OLA", k, avg_ola_corr])
+
+    means_df = pd.DataFrame(corr_means)
+    medians_df = pd.DataFrame(corr_medians)
+    print("Means:\n", means_df)
+    print("Medians:\n", medians_df)
 
 def near_mid_far_test(n_leaves=200, n_perms=10, output="temp.pdf", seed=None):
     """
@@ -403,7 +454,9 @@ if __name__ == "__main__":
 
     # near_mid_far_test(n_leaves=200, seed=168)
 
-    correlation_spr_walk_ola_shuffle(
-        n_leaves=100, n_steps=100, n_walks=50, load_data=True, seed=168
-    )
+    # correlation_spr_walk_ola_shuffle(
+    #     n_leaves=100, n_steps=100, n_walks=50, load_data=True, seed=168
+    # )
+    # 
+    correlation_spr_walk_ola_shuffle_table()
 
