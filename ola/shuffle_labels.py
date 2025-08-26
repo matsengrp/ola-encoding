@@ -381,8 +381,13 @@ def correlation_spr_walk_ola_shuffle_table(
 
     means_df = pd.DataFrame(corr_means)
     medians_df = pd.DataFrame(corr_medians)
-    print("Means:\n", means_df)
-    print("Medians:\n", medians_df)
+    # print("Means:\n", means_df)
+    # print("Medians:\n", medians_df)
+    with open("temp_SPR_walk_correlations.txt", "w") as fh:
+        # fh.write("Means:\n", means_df)
+        # fh.write("\n")
+        # fh.write("Medians:\n", medians_df)
+        fh.write("\n".join(["Means:", str(means_df), "", "Medians:", str(medians_df)]))
 
 def near_mid_far_test(n_leaves=200, n_perms=10, output="temp.pdf", seed=None):
     """

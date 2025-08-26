@@ -112,8 +112,7 @@ def plot_height_vs_spr_nbhr_max_ola_distance(
     if seed is not None:
         random.seed(seed)
 
-    fig, ax = plt.subplots()
-
+    data = []
     for n in [20, 50, 100, 200]:
         xs = []
         ys = []
@@ -128,15 +127,20 @@ def plot_height_vs_spr_nbhr_max_ola_distance(
             height = tree.get_farthest_node()[1]
             xs.append(height)
             ys.append(np.max(dists))
+            data.append([height, np.max(dists), n])
     
-        ax.scatter(xs, ys, alpha=0.8, label=n)
+    df = pd.DataFrame(data, columns=("height", "max_OLA", "n_leaves"))
+
+    fig, ax = plt.subplots()
+    palette = ['#a6611a','#dfc27d','#80cdc1','#018571']
+    sns.scatterplot(data=df, x="height", y="max_OLA", hue="n_leaves", palette=palette)
 
     ax.set_xlabel("Tree height")
     ax.set_ylabel("OLA distance")
     ax.legend()
 
     # add linear plot for upper bound
-    xs = range(2,16)
+    xs = range(2, 16)
     ys = [2*x for x in xs]
     sns.lineplot(x=xs, y=ys, color="grey", linestyle="--")
 
