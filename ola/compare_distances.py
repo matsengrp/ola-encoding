@@ -69,40 +69,57 @@ def plot_avg_spr_distance_vs_tree_size(
     
     fig.savefig(output)
 
-def plot_avg_nni_distance_vs_tree_size(
+def boxplot_avg_nni_distance_vs_tree_size(
+    load_data=False,
     seed=None,
     output="temp.pdf"
 ):
     """
     create a boxplot of expected distance from a fixed tree to a random NNI-neighbor 
-    tree, using randomly seleted NNI neighbors
+    tree, using randomly selected NNI neighbors
     """
     # set random seed
     if seed is not None:
         random.seed(seed)
 
-    fig, ax = plt.subplots()
+    if load_data and Path("temp_nni_nbhr.csv").is_file():
+        print("loading data")
+        df = pd.read_csv("temp_nni_nbhr.csv")
+    else:
+        n_trees = 50
+        n_nbhrs = 20  # max(10, n // 10)
+        tree_sizes = [5, 10, 20, 50, 100, 200, 500, 1000]  # [10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900]
 
-    data = []
-
-    for n in [10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900]:
-        for _ in range(10):
-            tree = get_random_tree(n_leaves=n)
-            dists = []
-            n_nbhrs = max(10, n // 10)
-            for _ in range(n_nbhrs):
-                tree_n = nni_neighbor(tree)
-                dists.append(ola_distance(tree, tree_n))
-            data.append([n, np.average(dists)])
+        data = []
+        for n in tree_sizes:
+            print(f"starting on trees with {n} leaves")
+            for _ in range(n_trees):
+                tree = get_random_tree(n_leaves=n)
+                dists = []
+                for _ in range(n_nbhrs):
+                    tree_n = nni_neighbor(tree)
+                    dists.append(ola_distance(tree, tree_n))
+                data.append([n, np.average(dists)])
     
-    df = pd.DataFrame(data, columns=("n_leaves", "dist"))
-    sns.boxplot(data=df, x="n_leaves", y="dist", native_scale=False, ax=ax)
+        df = pd.DataFrame(data, columns=("n_leaves", "dist"))
+        # save data to csv file
+        df.to_csv("temp_nni_nbhr.csv")
 
-    ax.set_xlabel("Number of leaves")
+    fig, ax = plt.subplots()
+    ax.set_xscale("log")
+    palette=sns.color_palette("pastel")[:1]
+    bp = sns.boxplot(
+        data=df, x="n_leaves", y="dist", palette=palette, native_scale=True, ax=ax
+    )
+    bp.set_xticks(tree_sizes)
+    bp.set_xticklabels(tree_sizes)
+    ax.minorticks_off()
+
+    ax.set_xlabel("Tree size  (number of leaves)")
     ax.set_ylabel("OLA distance")
     
-    sns.despine(fig, trim=True)
-    fig.savefig(output)
+    sns.despine(fig, offset=10, trim=True)
+    fig.savefig(output, bbox_inches="tight")
 
 def plot_height_vs_spr_nbhr_max_ola_distance(
     seed=None,
@@ -128,12 +145,13 @@ def plot_height_vs_spr_nbhr_max_ola_distance(
             xs.append(height)
             ys.append(np.max(dists))
             data.append([height, np.max(dists), n])
+        print("done with n_leaves =", n)
     
     df = pd.DataFrame(data, columns=("height", "max_OLA", "n_leaves"))
 
     fig, ax = plt.subplots()
     palette = ['#a6611a','#dfc27d','#80cdc1','#018571']
-    sns.scatterplot(data=df, x="height", y="max_OLA", hue="n_leaves", palette=palette)
+    sns.scatterplot(data=df, x="height", y="max_OLA", hue="n_leaves", palette="crest")
 
     ax.set_xlabel("Tree height")
     ax.set_ylabel("OLA distance")
@@ -181,9 +199,10 @@ def plot_height_vs_spr_nbhr_avg_ola_distance(
     sns.despine(fig)
     fig.savefig(output)
 
-def plot_ola_neighbor_spr_distance(
+def boxplot_ola_neighbor_spr_distance(
+    load_data=False,
     seed=None,
-    output="temp.pdf"
+    output="temp.pdf",
 ):
     """
     Generate pairs of trees which are OLA neighbors, i.e. their OLA distance = 1, and 
@@ -193,21 +212,22 @@ def plot_ola_neighbor_spr_distance(
     if seed is not None:
         random.seed(seed)
     
-    fig, ax = plt.subplots()
 
-    tree_sizes = [5, 10, 20, 50, 100, 200, 500]
-    if Path("temp_ola_nbhr").is_file():
-        df = pd.read_csv("temp_ola_nbhr")
+    if load_data and Path("temp_ola_nbhr.csv").is_file():
+        print("loading data")
+        df = pd.read_csv("temp_ola_nbhr.csv")
     else:
-        data = []
+        n_trees = 50
+        n_nbhrs = 20  # max(10, n // 10)
+        tree_sizes = [5, 10, 20, 50, 100, 200, 500, 1000]
 
+        data = []
         for n in tree_sizes:
             print(f"starting on {n} leaves")
             # option 1: take averages
-            for i in range(50):
+            for i in range(n_trees):
                 tree = get_random_tree(n_leaves=n)
                 dists = []
-                n_nbhrs = max(10, n // 10)
                 for _ in range(n_nbhrs):
                     tree_n = ola_neighbor(tree)
                     # compute rSPR distance using Whidden's C program
@@ -230,27 +250,26 @@ def plot_ola_neighbor_spr_distance(
 
         df = pd.DataFrame(data, columns=("n_leaves", "dist"))
         # save data to csv file
-        df.to_csv("temp_ola_nbhr")
+        df.to_csv("temp_ola_nbhr.csv")
+
+    fig, ax = plt.subplots()
     ax.set_xscale("log")
+    palette=sns.color_palette("pastel")[:1]
     bp = sns.boxplot(
-        data=df, x="n_leaves", y="dist", ax=ax,
+        data=df, x="n_leaves", y="dist", palette=palette, ax=ax,
         native_scale=True,
-        # whis=[0, 100],
         # notch=True,
-        width=0.8,
-        # alpha=0.6,
+        # width=0.8,
     )
     bp.set_xticks(tree_sizes)
     bp.set_xticklabels(tree_sizes)
     ax.minorticks_off()
-    # ax.set_xticks(tree_sizes, minor=False)
-    # ax.set_xticklabels([str(n) for n in tree_sizes])
 
-    ax.set_xlabel("Number of leaves")
+    ax.set_xlabel("Tree size  (number of leaves)")
     ax.set_ylabel("SPR distance")
 
-    sns.despine(fig, trim=True)
-    fig.savefig(output)
+    sns.despine(fig, offset=10, trim=True)
+    fig.savefig(output, bbox_inches="tight")
 
 def scatterplot_ola_neighbor_spr_distance(
     seed=None,
@@ -706,14 +725,16 @@ if __name__ == "__main__":
     # ola_distance_spr_walk_3000_leaves_short.pdf
     # plot_random_spr_walks(n_leaves=3000, n_steps=50, n_runs=10, seed=168)
 
-    # plot_avg_nni_distance_vs_tree_size(seed=168)
-    # nni_neighbors_distance_boxplot.pdf
+    # boxplot_avg_nni_distance_vs_tree_size(load_data=False, seed=168)
+    # nni_neighbors_ola_distance_boxplot.pdf
     # plot_height_vs_spr_nbhr_avg_ola_distance(seed=168)
     # spr_neighbors_distance_vs_height.pdf
-    plot_height_vs_spr_nbhr_max_ola_distance(seed=168)  # spr_neighbors_max_ola_distance_vs_height.pdf
+    # plot_height_vs_spr_nbhr_max_ola_distance(seed=168)  
+    # spr_neighbors_max_ola_distance_vs_height.pdf
+    # spr_neighbors_max_ola_distance_vs_height_brewer.pdf
 
     # plot_avg_spr_distance_vs_tree_size(distribution="yule")
 
-    # plot_ola_neighbor_spr_distance(seed=168)  # spr_distance_w_averages.pdf
+    boxplot_ola_neighbor_spr_distance(load_data=False, seed=168)  # spr_distance_avg_ola_neighbors.pdf
     # scatterplot_ola_neighbor_spr_distance(seed=168)
     pass
