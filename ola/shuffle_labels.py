@@ -269,7 +269,8 @@ def correlation_spr_walk_ola_shuffle(
         for perm in perms:
             random.shuffle(perm)
 
-        # compute average OLA distances
+        # compute average OLA 
+        ola_stddev_dists = [[0] for _ in range(n_walks)]
         ola_avg_dists = [[0] for _ in range(n_walks)]
         for i in range(n_walks):
             tree_0 = spr_walks[i][0]
@@ -277,6 +278,7 @@ def correlation_spr_walk_ola_shuffle(
                 tree = spr_walks[i][j + 1]
                 d, std = avg_ola_distance_shuffle(tree_0, tree, shuffles=perms)
                 ola_avg_dists[i].append(d)
+                ola_stddev_dists[i].append(std)
             print(f"  finished OLA avg for walk {i}")
         print("avg OLA:", ola_avg_dists)
 
@@ -287,6 +289,8 @@ def correlation_spr_walk_ola_shuffle(
             json.dump(ola_dists, fh)
         with open("temp_OLA_avg_dists.json", "w") as fh:
             json.dump(ola_avg_dists, fh)
+        with open("temp_OLA_stddev_dists.json", "w") as fh:
+            json.dump(ola_stddev_dists, fh)
     
 
     # compute correlation coefficients
@@ -330,6 +334,76 @@ def correlation_spr_walk_ola_shuffle(
 
     sns.despine(fig, offset=2, trim=True)
     # plt.tight_layout()
+    fig.savefig(out_file, bbox_inches="tight")
+
+def spr_walk_ola_shuffle_stddev(out_file="temp.pdf"):
+    # load data
+    with open("temp_OLA_stddev_dists.json", "r") as fh:
+        data = json.load(fh)
+        print("data loaded")
+    
+    data_sparse = []
+    for xs in data:
+        # normalize by n_leaves, which is ~max. OLA distance
+        data_sparse.append([x * 0.01 for x in xs[5::5]])
+
+    fig, ax = plt.subplots()
+    df = pd.DataFrame(data_sparse, columns=range(5, 101, 5))
+    # print("dataframe:\n", df)
+
+    color = sns.color_palette("pastel")[0]
+    # palette = sns.color_palette("muted")[:1]
+    # palette = sns.color_palette("muted")[9:10]
+    sns.boxplot(data=df, color=color)
+    ax.set_xlabel("SPR steps")
+    ax.set_ylabel("Std. dev. of normalized OLA distance")
+
+    sns.despine(fig, offset=10, trim=True)
+    fig.savefig(out_file, bbox_inches="tight")
+
+def spr_walk_ola_shuffle_avg(out_file="temp.pdf"):
+    # load data
+    with open("temp_OLA_avg_dists.json", "r") as fh:
+        data = json.load(fh)
+        print("data loaded")
+    
+    data_sparse = []
+    for xs in data:
+        # normalize by n_leaves, which is ~max. OLA distance
+        data_sparse.append([x * 0.01 for x in xs[5::5]])
+
+    fig, ax = plt.subplots()
+    df = pd.DataFrame(data_sparse, columns=range(5, 101, 5))
+    # print("dataframe:\n", df)
+
+    color = sns.color_palette("pastel")[0]
+    sns.boxplot(data=df, color=color)
+    ax.set_xlabel("SPR steps")
+    ax.set_ylabel("Mean normalized OLA distance")
+
+    sns.despine(fig, offset=10, trim=True)
+    fig.savefig(out_file, bbox_inches="tight")
+
+def spr_walk_ola_noshuffle(out_file="temp.pdf"):
+    # load data
+    with open("temp_OLA_dists.json", "r") as fh:
+        data =json.load(fh)
+        print("data loaded")
+
+    data_sparse = []
+    for xs in data:
+        # normalize by n_leaves, which is ~max. OLA distance
+        data_sparse.append([x * 0.01 for x in xs[5::5]])
+
+    fig, ax = plt.subplots()
+    df = pd.DataFrame(data_sparse, columns=range(5, 101, 5))
+
+    color = sns.color_palette("pastel")[0]
+    sns.boxplot(data=df, color=color)
+    ax.set_xlabel("SPR steps")
+    ax.set_ylabel("Normalized OLA distance")
+
+    sns.despine(fig, offset=10, trim=True)
     fig.savefig(out_file, bbox_inches="tight")
 
 def correlation_spr_walk_ola_shuffle_table(
@@ -460,8 +534,15 @@ if __name__ == "__main__":
     # near_mid_far_test(n_leaves=200, seed=168)
 
     # correlation_spr_walk_ola_shuffle(
-    #     n_leaves=100, n_steps=100, n_walks=50, load_data=True, seed=168
+    #     n_leaves=100, n_steps=100, n_walks=50, load_data=False, seed=168
     # )
-    # 
-    correlation_spr_walk_ola_shuffle_table()
+    # corr_spr_steps_vs_ola_shuf_ola_50.pdf
 
+    # correlation_spr_walk_ola_shuffle_table()
+
+    spr_walk_ola_shuffle_stddev()
+    # spr_walk_stddev_ola_shuffle.pdf
+    # spr_walk_ola_shuffle_avg()
+    # spr_walk_avg_ola_shuffle.pdf
+    # spr_walk_ola_noshuffle()
+    pass
