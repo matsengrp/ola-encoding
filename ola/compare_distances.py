@@ -1,4 +1,6 @@
-
+"""
+Compare OLA distance with SPR distance and NNI distance
+"""
 import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,8 +8,8 @@ import matplotlib.animation as animation
 import seaborn as sns
 import pandas as pd
 from pathlib import Path
-
 from subprocess import run
+
 from ete3 import Tree
 from ola_encoding import (
     to_tree, 
