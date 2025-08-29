@@ -246,7 +246,7 @@ def correlation_spr_walk_ola_shuffle(
         # write trees to files as newick strings
         for i, walk in enumerate(spr_walks):
             # create file
-            with open(f"nwk/walk_{i}", "w") as fh:
+            with open(f"nwk/walk_{i}.nwk", "w") as fh:
                 # write newick strings
                 newicks = [tree.write() for tree in walk]
                 fh.write("\n".join(newicks))
@@ -384,17 +384,59 @@ def newick_files_to_hop_dists(out_file="temp.json"):
     # save data
     with open(out_file, "w") as fh:
         json.dump(hop_dists, fh)
-    
 
-def correlation_hop_dist_spr_walk(n_steps=100, n_walks=50):
-    # compute correlation coefficients
-    data = []
-    steps = np.array(range(n_steps + 1))
+def newick_files_to_hop_shuffle_dists(out_file="temp.json"):
+    n_walks = 50
+    n_steps = 100
+    hop_avg_dists = [[0] for _ in range(n_walks)]
     for i in range(n_walks):
-        for k in range(5):
-            pass
+        print("starting walk", i)
+        # choose leaf order
+        walk_i_hop_dists = []
+        for j in range(1, 11):
+            
+            # run CEDAR script to convert newick strings to HOP / LTS vectors
+            cedar_script = "../../CEDAR/src/CEDAR.py"
+            command = (
+                f"python {cedar_script} fromNewick --input_file nwk/walk_{i}.nwk "
+                f"--output_file hop/walk_{i}_{j}.vec --order_file hop/order_{j}.txt"
+            )
+            run(command, shell=True)
 
-    pass
+            # run CEDAR script to convert list of HOP strings to HOP similarities
+            command = (
+                f"python {cedar_script} HOP_sim --input_file hop/walk_{i}_{j}.vec "
+                f"--output_file hop/sim_walk_{i}_{j}.txt --mode first"
+            )
+            run(command, shell=True)
+
+            # extract HOP distances from HOP similarities
+            with open(f"hop/sim_walk_{i}_{j}.txt", "r") as fh:
+                lines = fh.readlines()
+            hop_sims_ij = [int(line.split(",")[2]) for line in lines[2:]]
+            hop_dists_ij = [100 - s for s in hop_sims_ij]
+            assert len(hop_dists_ij) == 100
+            walk_i_hop_dists.append(hop_dists_ij)
+
+            first_dist = hop_dists_ij[:5]
+            print("walk", i, ", shuffle", j, ":", first_dist)
+        # average the distances in `walk_i_hop_dists`
+        dists_tr = [[row[k] for row in walk_i_hop_dists] for k in range(n_steps)]
+        dists_tr_avg = [np.average(col) for col in dists_tr]
+        hop_avg_dists[i].extend(dists_tr_avg)
+    # save data
+    with open(out_file, "w") as fh:
+        json.dump(hop_avg_dists, fh)
+
+
+# def correlation_hop_dist_spr_walk(n_steps=100, n_walks=50):
+#     # compute correlation coefficients
+#     data = []
+#     steps = np.array(range(n_steps + 1))
+#     for i in range(n_walks):
+#         for k in range(5):
+#             pass
+#     pass
 
 def spr_walk_ola_shuffle_stddev(out_file="temp.pdf"):
     # load data
@@ -482,39 +524,40 @@ def table_correlation_spr_walk_ola_shuffle(
             ola_avg_dists = json.load(fh)
         with open("temp_HOP_dists.json", "r") as fh:
             hop_dists = json.load(fh)
+        with open("temp_HOP_avg_dists.json", "r") as fh:
+            hop_avg_dists = json.load(fh)
 
+    d_types = ["RF", "OLA", "avg_OLA", "HOP", "avg_HOP"]
     # compute correlation coefficients
-    corr_means = {"RF": [], "OLA": [], "avg_OLA": [], "HOP": []}
-    corr_medians = {"RF": [], "OLA": [], "avg_OLA": [], "HOP": []}
-    data = []
+    corr_means = {x: [] for x in d_types}
+    corr_medians = {x: [] for x in d_types}
+    # data = []
     steps = np.array(range(n_steps + 1))
     for k in range(10, n_steps+1, 10):
-        k_data = {"RF": [], "OLA": [], "avg_OLA": [], "HOP": []}
+        k_data = {x: [] for x in d_types}
         for i in range(n_walks):
             steps_to_k = steps[0:k + 1]
             rf_d = rf_dists[i][0:k + 1]
             ola_d = ola_dists[i][0:k + 1]
             avg_ola_d = ola_avg_dists[i][0:k + 1]
             hop_d = hop_dists[i][0:k + 1]
+            avg_hop_d = hop_avg_dists[i][0:k + 1]
 
             rf_corr = np.corrcoef(steps_to_k, rf_d)[0, 1]
             ola_corr = np.corrcoef(steps_to_k, ola_d)[0, 1]
             avg_ola_corr = np.corrcoef(steps_to_k, avg_ola_d)[0, 1]
             hop_corr = np.corrcoef(steps_to_k, hop_d)[0, 1]
+            avg_hop_corr = np.corrcoef(steps_to_k, avg_hop_d)[0, 1]
 
             k_data["RF"].append(rf_corr)
             k_data["OLA"].append(ola_corr)
             k_data["avg_OLA"].append(avg_ola_corr)
             k_data["HOP"].append(hop_corr)
+            k_data["avg_HOP"].append(avg_hop_corr)
         # average over all walks
-        corr_means["RF"].append(np.average(k_data["RF"]))
-        corr_medians["RF"].append(np.median(k_data["RF"]))
-        corr_means["OLA"].append(np.average(k_data["OLA"]))
-        corr_medians["OLA"].append(np.median(k_data["OLA"]))
-        corr_means["avg_OLA"].append(np.average(k_data["avg_OLA"]))
-        corr_medians["avg_OLA"].append(np.median(k_data["avg_OLA"]))
-        corr_means["HOP"].append(np.average(k_data["HOP"]))
-        corr_medians["HOP"].append(np.median(k_data["HOP"]))
+        for d_type in d_types:
+            corr_means[d_type].append(np.average(k_data[d_type]))
+            corr_medians[d_type].append(np.median(k_data[d_type]))
 
         # data.append(["RF", k, rf_corr])
         # data.append(["OLA", k, ola_corr])
@@ -522,6 +565,12 @@ def table_correlation_spr_walk_ola_shuffle(
 
     means_df = pd.DataFrame(corr_means)
     medians_df = pd.DataFrame(corr_medians)
+    for df in [means_df, medians_df]:
+        df["steps"] = [i for i in range(10, 101, 10)]
+        # df.set_index("steps")
+    # write data to csv's
+    means_df.to_csv("temp_corr_means.csv", index=False)
+    medians_df.to_csv("temp_corr_medians.csv", index=False)
     # print("Means:\n", means_df)
     # print("Medians:\n", medians_df)
     with open("temp_SPR_walk_correlations.txt", "w") as fh:
@@ -529,6 +578,39 @@ def table_correlation_spr_walk_ola_shuffle(
         # fh.write("\n")
         # fh.write("Medians:\n", medians_df)
         fh.write("\n".join(["Means:", str(means_df), "", "Medians:", str(medians_df)]))
+
+def plot_correlation():
+    # with open("temp_corr_means.csv", "r") as fh:
+    def melt_df(file):
+        df = pd.melt(
+            pd.read_csv(file),
+            id_vars=["steps"],
+            value_vars=["OLA", "avg_OLA", "HOP", "avg_HOP"],
+            var_name="dist_type",
+            value_name="corr",
+        )
+        return df
+    means_df = melt_df("temp_corr_means.csv")
+    medians_df = melt_df("temp_corr_medians.csv")
+
+    fig, ax = plt.subplots()
+    palette = [sns.color_palette("Paired")[i] for i in [4, 5, 2, 3]]
+    
+    df = means_df
+    # df = medians_df
+    lp = sns.lineplot(
+        data=df, x="steps", y="corr", hue="dist_type", 
+        palette=palette,
+        markers=True
+    )
+    spr_dists = [x for x in range(10, 101, 10)]
+    lp.set_xticks(spr_dists)
+    lp.set_xticklabels(spr_dists)
+
+    ax.set_xlabel("SPR steps")
+    ax.set_ylabel("Pearson correlation")
+    sns.despine(fig, trim=True)
+    fig.savefig("temp.pdf")
 
 def near_mid_far_test(n_leaves=200, n_perms=10, output="temp.pdf", seed=None):
     """
@@ -600,12 +682,13 @@ if __name__ == "__main__":
 
     # near_mid_far_test(n_leaves=200, seed=168)
 
-    correlation_spr_walk_ola_shuffle(
-        n_leaves=100, n_steps=100, n_walks=50, load_data=False, seed=168
-    )
+    # correlation_spr_walk_ola_shuffle(
+    #     n_leaves=100, n_steps=100, n_walks=50, load_data=False, seed=168
+    # )
     # corr_spr_steps_vs_ola_shuf_ola_50.pdf
 
     # table_correlation_spr_walk_ola_shuffle()
+    plot_correlation()
 
     # spr_walk_ola_shuffle_stddev()
     # spr_walk_stddev_ola_shuffle.pdf
@@ -614,4 +697,5 @@ if __name__ == "__main__":
     # spr_walk_ola_noshuffle()
 
     # newick_files_to_hop_dists()
+    # newick_files_to_hop_shuffle_dists()
     pass
