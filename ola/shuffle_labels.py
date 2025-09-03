@@ -528,6 +528,13 @@ def table_correlation_spr_walk_ola_shuffle(
             hop_avg_dists = json.load(fh)
 
     d_types = ["RF", "OLA", "avg_OLA", "HOP", "avg_HOP"]
+    d_data = {
+        "RF": rf_dists,
+        "OLA": ola_dists,
+        "avg_OLA": ola_avg_dists,
+        "HOP": hop_dists,
+        "avg_HOP": hop_avg_dists,
+    }
     # compute correlation coefficients
     corr_means = {x: [] for x in d_types}
     corr_medians = {x: [] for x in d_types}
@@ -536,39 +543,18 @@ def table_correlation_spr_walk_ola_shuffle(
     steps = np.array(range(n_steps + 1))
     for k in range(10, n_steps+1, 10):
         k_data = {x: [] for x in d_types}
+        steps_to_k = steps[0:k + 1]
         for i in range(n_walks):
-            steps_to_k = steps[0:k + 1]
-            rf_d = rf_dists[i][0:k + 1]
-            ola_d = ola_dists[i][0:k + 1]
-            avg_ola_d = ola_avg_dists[i][0:k + 1]
-            hop_d = hop_dists[i][0:k + 1]
-            avg_hop_d = hop_avg_dists[i][0:k + 1]
+            for dist in d_types:
+                dists_to_k = d_data[dist][i][0:k + 1]
+                corr = np.corrcoef(steps_to_k, dists_to_k)[0, 1]
+                k_data[dist].append(corr)
+                corr_data.append((k, dist, corr, i))
 
-            rf_corr = np.corrcoef(steps_to_k, rf_d)[0, 1]
-            ola_corr = np.corrcoef(steps_to_k, ola_d)[0, 1]
-            avg_ola_corr = np.corrcoef(steps_to_k, avg_ola_d)[0, 1]
-            hop_corr = np.corrcoef(steps_to_k, hop_d)[0, 1]
-            avg_hop_corr = np.corrcoef(steps_to_k, avg_hop_d)[0, 1]
-
-            k_data["RF"].append(rf_corr)
-            k_data["OLA"].append(ola_corr)
-            k_data["avg_OLA"].append(avg_ola_corr)
-            k_data["HOP"].append(hop_corr)
-            k_data["avg_HOP"].append(avg_hop_corr)
-
-            corr_data.append((k, "RF",      rf_corr, i))
-            corr_data.append((k, "OLA",     ola_corr, i))
-            corr_data.append((k, "avg_OLA", avg_ola_corr, i))
-            corr_data.append((k, "HOP",     hop_corr, i))
-            corr_data.append((k, "avg_HOP", avg_hop_corr, i))
         # average over all walks
         for d_type in d_types:
             corr_means[d_type].append(np.average(k_data[d_type]))
             corr_medians[d_type].append(np.median(k_data[d_type]))
-
-        # data.append(["RF", k, rf_corr])
-        # data.append(["OLA", k, ola_corr])
-        # data.append(["mean OLA", k, avg_ola_corr])
 
     means_df = pd.DataFrame(corr_means)
     medians_df = pd.DataFrame(corr_medians)
@@ -577,7 +563,7 @@ def table_correlation_spr_walk_ola_shuffle(
     )
     for df in [means_df, medians_df]:
         df["steps"] = [i for i in range(10, 101, 10)]
-        # df.set_index("steps")
+
     # write data to csv's
     means_df.to_csv("temp_corr_means.csv", index=False)
     medians_df.to_csv("temp_corr_medians.csv", index=False)
@@ -585,9 +571,6 @@ def table_correlation_spr_walk_ola_shuffle(
     # print("Means:\n", means_df)
     # print("Medians:\n", medians_df)
     with open("temp_SPR_walk_correlations.txt", "w") as fh:
-        # fh.write("Means:\n", means_df)
-        # fh.write("\n")
-        # fh.write("Medians:\n", medians_df)
         fh.write("\n".join(["Means:", str(means_df), "", "Medians:", str(medians_df)]))
 
 def plot_correlation(show_means=False):
@@ -702,8 +685,8 @@ if __name__ == "__main__":
     # )
     # corr_spr_steps_vs_ola_shuf_ola_50.pdf
 
-    # table_correlation_spr_walk_ola_shuffle()
-    plot_correlation()
+    table_correlation_spr_walk_ola_shuffle()
+    # plot_correlation()
 
     # spr_walk_ola_shuffle_stddev()
     # spr_walk_stddev_ola_shuffle.pdf
