@@ -531,7 +531,8 @@ def table_correlation_spr_walk_ola_shuffle(
     # compute correlation coefficients
     corr_means = {x: [] for x in d_types}
     corr_medians = {x: [] for x in d_types}
-    # data = []
+    corr_data = []
+
     steps = np.array(range(n_steps + 1))
     for k in range(10, n_steps+1, 10):
         k_data = {x: [] for x in d_types}
@@ -554,6 +555,12 @@ def table_correlation_spr_walk_ola_shuffle(
             k_data["avg_OLA"].append(avg_ola_corr)
             k_data["HOP"].append(hop_corr)
             k_data["avg_HOP"].append(avg_hop_corr)
+
+            corr_data.append((k, "RF",      rf_corr, i))
+            corr_data.append((k, "OLA",     ola_corr, i))
+            corr_data.append((k, "avg_OLA", avg_ola_corr, i))
+            corr_data.append((k, "HOP",     hop_corr, i))
+            corr_data.append((k, "avg_HOP", avg_hop_corr, i))
         # average over all walks
         for d_type in d_types:
             corr_means[d_type].append(np.average(k_data[d_type]))
@@ -565,12 +572,16 @@ def table_correlation_spr_walk_ola_shuffle(
 
     means_df = pd.DataFrame(corr_means)
     medians_df = pd.DataFrame(corr_medians)
+    corr_df = pd.DataFrame(
+        corr_data, columns=("steps", "dist_type", "corr", "walk_idx")
+    )
     for df in [means_df, medians_df]:
         df["steps"] = [i for i in range(10, 101, 10)]
         # df.set_index("steps")
     # write data to csv's
     means_df.to_csv("temp_corr_means.csv", index=False)
     medians_df.to_csv("temp_corr_medians.csv", index=False)
+    corr_df.to_csv("temp_corr_data.csv", index=False)
     # print("Means:\n", means_df)
     # print("Medians:\n", medians_df)
     with open("temp_SPR_walk_correlations.txt", "w") as fh:
@@ -579,36 +590,40 @@ def table_correlation_spr_walk_ola_shuffle(
         # fh.write("Medians:\n", medians_df)
         fh.write("\n".join(["Means:", str(means_df), "", "Medians:", str(medians_df)]))
 
-def plot_correlation():
-    # with open("temp_corr_means.csv", "r") as fh:
-    def melt_df(file):
-        df = pd.melt(
-            pd.read_csv(file),
-            id_vars=["steps"],
-            value_vars=["OLA", "avg_OLA", "HOP", "avg_HOP"],
-            var_name="dist_type",
-            value_name="corr",
-        )
-        return df
-    means_df = melt_df("temp_corr_means.csv")
-    medians_df = melt_df("temp_corr_medians.csv")
+def plot_correlation(show_means=False):
+    corr_df = pd.read_csv("temp_corr_data.csv")
 
     fig, ax = plt.subplots()
-    palette = [sns.color_palette("Paired")[i] for i in [4, 5, 2, 3]]
     
-    df = means_df
-    # df = medians_df
+    df = corr_df
+    df["dist type"] = df["dist_type"].map({
+        "RF": "RF",
+        "OLA": "OLA",
+        "HOP": "HOP",
+        "avg_OLA": "mean OLA",
+        "avg_HOP": "mean HOP",
+    })
+
+    palette = [sns.color_palette("Paired")[i] for i in [5, 3]]
+    if show_means:
+        types = ["mean OLA", "mean HOP"]
+    else:
+        types = ["OLA", "HOP"]
+
     lp = sns.lineplot(
-        data=df, x="steps", y="corr", hue="dist_type", 
+        data=df, x="steps", y="corr", hue="dist type", 
+        hue_order=types,
         palette=palette,
         markers=True
     )
     spr_dists = [x for x in range(10, 101, 10)]
     lp.set_xticks(spr_dists)
     lp.set_xticklabels(spr_dists)
+    lp.set_yticks([y * 0.01 for y in range(90, 100, 2)])
 
     ax.set_xlabel("SPR steps")
     ax.set_ylabel("Pearson correlation")
+    ax.legend().set_title(None)
     sns.despine(fig, trim=True)
     fig.savefig("temp.pdf")
 
