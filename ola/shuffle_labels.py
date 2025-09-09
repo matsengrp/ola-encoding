@@ -543,11 +543,19 @@ def table_correlation_spr_walk_ola_shuffle(
     steps = np.array(range(n_steps + 1))
     for k in range(10, n_steps+1, 10):
         k_data = {x: [] for x in d_types}
-        steps_to_k = steps[0:k + 1]
+        steps_to_k = steps[k - 10:k + 1]
+        print("current steps =", steps_to_k)
         for i in range(n_walks):
             for dist in d_types:
-                dists_to_k = d_data[dist][i][0:k + 1]
+                dists_to_k = d_data[dist][i][k - 10:k + 1]
+                if len(dists_to_k) != 11:
+                    print(f"k={k}, i={i}, type={dist}, num dists={len(dists_to_k)}")
                 corr = np.corrcoef(steps_to_k, dists_to_k)[0, 1]
+                if np.isnan(corr):
+                    print(f"warning occurred at k={k}, i={i}, type={dist},")
+                    print("  data:", dists_to_k)
+                    print("  correlation:", corr)
+                    corr = 0.0
                 k_data[dist].append(corr)
                 corr_data.append((k, dist, corr, i))
 
@@ -587,11 +595,11 @@ def plot_correlation(show_means=False):
         "avg_HOP": "mean HOP",
     })
 
-    palette = [sns.color_palette("Paired")[i] for i in [5, 3]]
+    palette = [sns.color_palette("Paired")[i] for i in [1, 5, 3]]
     if show_means:
-        types = ["mean OLA", "mean HOP"]
+        types = ["RF", "mean OLA", "mean HOP"]
     else:
-        types = ["OLA", "HOP"]
+        types = ["RF", "OLA", "HOP"]
 
     lp = sns.lineplot(
         data=df, x="steps", y="corr", hue="dist type", 
@@ -602,13 +610,15 @@ def plot_correlation(show_means=False):
     spr_dists = [x for x in range(10, 101, 10)]
     lp.set_xticks(spr_dists)
     lp.set_xticklabels(spr_dists)
-    lp.set_yticks([y * 0.01 for y in range(90, 100, 2)])
+    # lp.set_yticks([y * 0.01 for y in range(90, 100, 2)])
+    ax.legend().set_title(None)
+    if True or show_means:
+        sns.move_legend(lp, "upper right", bbox_to_anchor=(0.9, 1.1))
 
     ax.set_xlabel("SPR steps")
     ax.set_ylabel("Pearson correlation")
-    ax.legend().set_title(None)
     sns.despine(fig, trim=True)
-    fig.savefig("temp.pdf")
+    fig.savefig("temp.pdf", bbox_inches="tight")
 
 def near_mid_far_test(n_leaves=200, n_perms=10, output="temp.pdf", seed=None):
     """
@@ -685,8 +695,8 @@ if __name__ == "__main__":
     # )
     # corr_spr_steps_vs_ola_shuf_ola_50.pdf
 
-    table_correlation_spr_walk_ola_shuffle()
-    # plot_correlation()
+    # table_correlation_spr_walk_ola_shuffle()
+    plot_correlation(show_means=False)
 
     # spr_walk_ola_shuffle_stddev()
     # spr_walk_stddev_ola_shuffle.pdf
